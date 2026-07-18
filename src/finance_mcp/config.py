@@ -22,6 +22,14 @@ class Settings(BaseSettings):
 
     otel_exporter_otlp_endpoint: str | None = None
 
+    # Stage 7 — proactive scheduler (internal fallback delivery path when
+    # Hermes cron isn't available/configured).
+    notifier_webhook_url: str | None = None
+    scheduler_cash_balance: str = "0"
+    scheduler_alert_check_hour_utc: int = 8
+    scheduler_digest_day_of_week: str = "mon"
+    scheduler_digest_hour_utc: int = 9
+
 
 def get_settings() -> Settings:
     return Settings()  # type: ignore[call-arg]  # values sourced from env/`.env`

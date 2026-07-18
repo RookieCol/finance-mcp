@@ -70,6 +70,10 @@ warn_unused_configs = true
 disallow_untyped_defs = true
 
 [[tool.mypy.overrides]]
+module = "apscheduler.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
 module = "finance_mcp.core.*"
 disallow_untyped_defs = true
 disallow_any_generics = true

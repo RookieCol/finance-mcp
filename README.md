@@ -152,6 +152,14 @@ uv run uvicorn finance_mcp.web.app:app --reload   # http://127.0.0.1:8000
 
 No auth in v1 — single-user, intended for localhost/private-network use; noted as a follow-up before any exposure beyond that.
 
+**Proactive scheduler** (Stage 7, `finance_mcp/scheduler/`) — the internal fallback delivery path for when Hermes cron isn't set up:
+
+```bash
+uv run finance-scheduler
+```
+
+Runs `core.alerts.evaluate_alerts` daily and a weekly digest (`core.projections` + `core.reporting`), delivering via a pluggable notifier — a generic webhook POST (`NOTIFIER_WEBHOOK_URL`, works with Slack/Discord incoming webhooks) or, if unset, a log-only notifier so nothing is silently dropped. Alert delivery is idempotent: `core.alerts` dedupes by `AlertEvent.dedup_key`, so re-running the check doesn't re-send an already-open finding. The **primary** path, once Hermes is available, is Hermes cron calling the `get_digest`/`check_alerts` MCP tools directly and posting the result to chat — no code on this side, just a `hermes cron` recipe (documented below); this scheduler exists so alerts/digests work even without a Hermes install.
+
 ## Status
 
 Build is executed stage-by-stage, each stage landing as its own commit(s) on `main` — this checklist is the source of truth for what currently exists versus what's still planned.
@@ -163,11 +171,15 @@ Build is executed stage-by-stage, each stage landing as its own commit(s) on `ma
 - [x] Stage 4 — MCP tools
 - [x] Stage 5 — Clarification / elicitation flow
 - [x] Stage 6 — Internal UI
-- [ ] Stage 7 — Proactive scheduler
-- [ ] Stage 8 — Observability (logging, tracing, metrics, Langfuse)
+- [x] Stage 7 — Proactive scheduler
+- [x] Stage 8 — Observability — structured logging, tracing, `/metrics` (done as part of Stages 3/6). Self-hosted Langfuse + LiteLLM (agent tracing, LLM cost/budget governance) is **deprioritized/optional** — not required to run this repo, see "Deferred / optional" below.
 - [ ] Stage 9 — Testing & CI
 - [ ] Stage 10 — Containerization & run story (incl. backups/restore)
-- [ ] Stage 11 — Hermes dev container & integration
+- Stage 11 — Hermes dev container & integration: **deprioritized/optional**, see below.
+
+**Deferred / optional** (not required to build or run this repo; documented as future follow-ups):
+- Self-hosted Langfuse + LiteLLM proxy for agent-level tracing and LLM cost/budget governance.
+- A `hermes-dev` Docker Compose profile for testing the live Hermes chat integration locally. The MCP tool surface is fully tested independently (`tests/integration/test_mcp_tools.py`) and the registration steps for a real Hermes install are documented below — only the local dev-container convenience is deferred.
 
 ## License
 
