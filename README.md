@@ -92,11 +92,13 @@ uv run ruff check .           # lint
 uv run mypy src/finance_mcp   # type-check
 uv run bandit -c pyproject.toml -r src/finance_mcp   # SAST
 uv run pip-audit              # dependency vulnerabilities
-uv run pytest --cov=finance_mcp --cov-report=term-missing   # tests (spins up Postgres via testcontainers)
+uv run pytest --cov=finance_mcp --cov-report=term-missing   # tests + 85% coverage gate (real Postgres via testcontainers)
 uv run pre-commit install     # wires the same checks into git hooks locally
 ```
 
-The `finance-mcp`, `finance-web`, and `finance-scheduler` console scripts exist but intentionally raise `NotImplementedError` until their respective stages (4, 6, 7) land — this keeps the package importable and testable from Stage 1 without pretending functionality exists before it does.
+CI (`.github/workflows/ci.yml`) runs the same steps on every push/PR, plus `gitleaks` secret scanning as a separate job — lint → format check → type-check → SAST → dependency audit → tests with a coverage gate (`fail_under = 85` in `pyproject.toml`).
+
+The `finance-mcp`, `finance-web`, and `finance-scheduler` console scripts are all implemented (Stages 4, 6, 7 respectively) — run any of them directly once `DATABASE_URL` points at a real Postgres.
 
 **Database schema** (Stage 2) is managed with Alembic against the SQLAlchemy models in `finance_mcp/core/models.py`:
 
@@ -173,7 +175,7 @@ Build is executed stage-by-stage, each stage landing as its own commit(s) on `ma
 - [x] Stage 6 — Internal UI
 - [x] Stage 7 — Proactive scheduler
 - [x] Stage 8 — Observability — structured logging, tracing, `/metrics` (done as part of Stages 3/6). Self-hosted Langfuse + LiteLLM (agent tracing, LLM cost/budget governance) is **deprioritized/optional** — not required to run this repo, see "Deferred / optional" below.
-- [ ] Stage 9 — Testing & CI
+- [x] Stage 9 — Testing & CI
 - [ ] Stage 10 — Containerization & run story (incl. backups/restore)
 - Stage 11 — Hermes dev container & integration: **deprioritized/optional**, see below.
 

@@ -86,6 +86,17 @@ markers = [
     "integration: requires external services (Docker/Postgres via testcontainers)",
 ]
 
+[tool.coverage.run]
+source = ["finance_mcp"]
+# The scheduler's blocking main() loop is process-lifetime code exercised
+# by running the process, not a unit/integration test — everything it
+# calls (jobs.py, notifier.py) is covered directly instead.
+omit = ["src/finance_mcp/scheduler/runner.py"]
+
+[tool.coverage.report]
+fail_under = 85
+exclude_also = ["if __name__ == .__main__.:"]
+
 [tool.commitizen]
 name = "cz_conventional_commits"
 version = "0.1.0"

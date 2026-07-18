@@ -7,6 +7,17 @@ on:
     branches: [main]
 
 jobs:
+  secrets-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Security — secret detection (gitleaks)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   lint-and-test:
     runs-on: ubuntu-latest
     steps:
@@ -35,5 +46,5 @@ jobs:
       - name: Security — dependency audit (pip-audit)
         run: uv run pip-audit
 
-      - name: Tests
+      - name: Tests (with coverage gate)
         run: uv run pytest --cov=finance_mcp --cov-report=term-missing
