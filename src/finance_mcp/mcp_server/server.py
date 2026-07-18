@@ -5,15 +5,20 @@ projections/digests/alerts.
 Every tool wraps ``core/`` — no business logic lives here. Errors are
 returned as structured content (``{"status": "error", ...}``), never a
 raised exception surfaced to the client. Ambiguous ``record_transaction``
-input returns ``{"status": "clarification_needed", ...}`` today; Stage 5
-adds an ``elicitation/create`` attempt in front of that same fallback.
+input first tries ``elicitation/create`` to ask the client for exactly
+the missing field(s); if that's declined or the client doesn't support
+elicitation, it falls back to a structured
+``{"status": "clarification_needed", ...}`` response instead.
 """
 
+import dataclasses
 import uuid
 from datetime import date
 from typing import Any
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server.elicitation import AcceptedElicitation
+from mcp.server.fastmcp import Context, FastMCP
+from pydantic import Field, create_model
 
 from finance_mcp.config import get_settings
 from finance_mcp.core import alerts, db, projections, reporting, repository
@@ -34,8 +39,42 @@ def _issues_to_payload(issues: list[ValidationIssue]) -> dict[str, Any]:
     }
 
 
+async def _try_elicit_missing_fields(
+    ctx: Context[Any, Any, Any], raw: TransactionInput, issues: list[ValidationIssue]
+) -> TransactionInput | None:
+    """Attempt to fill in the fields flagged by ``issues`` via MCP's
+    elicitation/create (form mode) — pausing this tool call to ask the
+    connected client for exactly the missing data, per-field.
+
+    Returns an updated ``TransactionInput`` when the client accepted and
+    provided values, or ``None`` if the client declined/cancelled, or
+    doesn't support elicitation at all (older/simpler MCP clients — this
+    is a plain client capability gap, not a bug, so we swallow the error
+    and let the caller fall back to the structured clarification_needed
+    response instead).
+    """
+    fields = {issue.field: (str, Field(description=issue.message)) for issue in issues}
+    ElicitedFields = create_model("ElicitedTransactionFields", **fields)  # type: ignore[call-overload]
+    message = "Missing/invalid fields for this transaction: " + ", ".join(
+        f"{i.field} ({i.message})" for i in issues
+    )
+    try:
+        result = await ctx.elicit(message=message, schema=ElicitedFields)
+    except Exception:
+        logger.info("elicitation.unsupported_or_failed", fields=list(fields))
+        return None
+
+    if not isinstance(result, AcceptedElicitation):
+        logger.info("elicitation.declined_or_cancelled", fields=list(fields))
+        return None
+
+    updates = {name: getattr(result.data, name) for name in fields}
+    return dataclasses.replace(raw, **updates)
+
+
 @mcp.tool()
-def record_transaction(
+async def record_transaction(
+    ctx: Context[Any, Any, Any],
     type: str | None = None,
     amount: str | None = None,
     occurred_on: str | None = None,
@@ -56,23 +95,30 @@ def record_transaction(
     (e.g. "50.00"), never a float. ``occurred_on`` is an ISO date
     (YYYY-MM-DD). ``category`` must be one of the values returned by
     ``list_categories`` for the given type. If any field is missing or
-    invalid, returns a 'clarification_needed' result instead of an error
-    — ask the user and retry with the corrected field(s).
+    invalid, this tool first tries to ask the client directly via MCP
+    elicitation; if that's declined or unsupported, it returns a
+    'clarification_needed' result instead of an error — ask the user in
+    chat and retry with the corrected field(s).
     """
     # Not merged with the DB `with` below (SIM117): validation can
     # short-circuit before a session is ever needed.
     with correlation_id() as cid, traced_operation("record_transaction", correlation_id=cid):  # noqa: SIM117
-        result = validate_transaction(
-            TransactionInput(
-                type=type,
-                amount=amount,
-                currency=currency,
-                occurred_on=occurred_on,
-                description=description,
-                category=category,
-                is_recurring=is_recurring,
-            )
+        raw = TransactionInput(
+            type=type,
+            amount=amount,
+            currency=currency,
+            occurred_on=occurred_on,
+            description=description,
+            category=category,
+            is_recurring=is_recurring,
         )
+        result = validate_transaction(raw)
+
+        if not result.is_valid:
+            elicited = await _try_elicit_missing_fields(ctx, raw, result.issues)
+            if elicited is not None:
+                result = validate_transaction(elicited)
+
         if not result.is_valid or result.transaction is None:
             logger.info("record_transaction.clarification_needed", missing=len(result.issues))
             return _issues_to_payload(result.issues)
@@ -83,7 +129,10 @@ def record_transaction(
                 result.transaction,
                 source="chat",
                 actor=AuditActor.chat,
-                raw_input=f"{type} {amount} {currency} {description}",
+                raw_input=(
+                    f"{result.transaction.type.value} {result.transaction.amount_minor / 100:.2f} "
+                    f"{result.transaction.currency} {result.transaction.description}"
+                ),
                 idempotency_key=idempotency_key,
             )
             session.flush()

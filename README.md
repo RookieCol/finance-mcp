@@ -123,7 +123,7 @@ Registering this server with a real Hermes install, and the local `hermes-dev` c
 
 | Tool | Purpose |
 |---|---|
-| `record_transaction` | Record income/expense. All fields accepted as optional at the schema level and validated internally — omitting one returns `clarification_needed`, not a hard MCP error (see the regression test in `tests/integration/test_mcp_tools.py`). |
+| `record_transaction` | Record income/expense. All fields accepted as optional at the schema level and validated internally. On a missing/invalid field, first tries `elicitation/create` to ask the client directly for just that field; if declined or the client doesn't support elicitation, falls back to a structured `clarification_needed` result — never a hard MCP error (see `tests/integration/test_mcp_tools.py` and `tests/unit/test_elicitation.py`). |
 | `update_transaction` | Correct a field on an existing transaction. |
 | `list_transactions` | Filtered listing by type/category/date range. |
 | `get_totals` | Aggregate totals by category or month. |
@@ -143,7 +143,7 @@ Build is executed stage-by-stage, each stage landing as its own commit(s) on `ma
 - [x] Stage 2 — Data model (Postgres + Alembic)
 - [x] Stage 3 — Shared core layer
 - [x] Stage 4 — MCP tools
-- [ ] Stage 5 — Clarification / elicitation flow
+- [x] Stage 5 — Clarification / elicitation flow
 - [ ] Stage 6 — Internal UI
 - [ ] Stage 7 — Proactive scheduler
 - [ ] Stage 8 — Observability (logging, tracing, metrics, Langfuse)
