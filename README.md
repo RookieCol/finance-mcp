@@ -87,16 +87,26 @@ Docker Compose and a working database are not wired up yet (Stages 2 and 10) —
 
 ```bash
 uv sync --all-groups
-cp .env.example .env          # DATABASE_URL is required even though nothing reads the DB yet
+cp .env.example .env          # DATABASE_URL is required (a local Postgres, e.g. via docker run)
 uv run ruff check .           # lint
 uv run mypy src/finance_mcp   # type-check
 uv run bandit -c pyproject.toml -r src/finance_mcp   # SAST
 uv run pip-audit              # dependency vulnerabilities
-uv run pytest --cov=finance_mcp --cov-report=term-missing   # tests
+uv run pytest --cov=finance_mcp --cov-report=term-missing   # tests (spins up Postgres via testcontainers)
 uv run pre-commit install     # wires the same checks into git hooks locally
 ```
 
 The `finance-mcp`, `finance-web`, and `finance-scheduler` console scripts exist but intentionally raise `NotImplementedError` until their respective stages (4, 6, 7) land — this keeps the package importable and testable from Stage 1 without pretending functionality exists before it does.
+
+**Database schema** (Stage 2) is managed with Alembic against the SQLAlchemy models in `finance_mcp/core/models.py`:
+
+```bash
+export DATABASE_URL=postgresql+psycopg://finance:finance@localhost:5432/finance
+uv run alembic upgrade head      # apply all migrations, incl. category taxonomy seed
+uv run alembic downgrade base    # tear back down — verified to be a true inverse (tables + enum types)
+```
+
+Money is stored as integer minor units (`amount_minor`, e.g. cents) with an ISO 4217 currency code — never a float — per the fintech engineering practices linked below. Every transaction write is meant to be idempotent (`idempotency_key`) and soft-deleted (`deleted_at`), with a parallel append-only `audit_log`.
 
 Registering this server with a real Hermes install, and the local `hermes-dev` compose profile for testing the live chat integration without Telegram/Slack, are documented once Stage 11 lands.
 
@@ -106,7 +116,7 @@ Build is executed stage-by-stage, each stage landing as its own commit(s) on `ma
 
 - [x] Stage 0 — Repository bootstrap
 - [x] Stage 1 — Project scaffolding & tooling
-- [ ] Stage 2 — Data model (Postgres + Alembic)
+- [x] Stage 2 — Data model (Postgres + Alembic)
 - [ ] Stage 3 — Shared core layer
 - [ ] Stage 4 — MCP tools
 - [ ] Stage 5 — Clarification / elicitation flow

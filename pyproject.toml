@@ -72,6 +72,9 @@ strict = true
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
+markers = [
+    "integration: requires external services (Docker/Postgres via testcontainers)",
+]
 
 [tool.commitizen]
 name = "cz_conventional_commits"
