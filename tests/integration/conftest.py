@@ -45,6 +45,27 @@ def database_url() -> Generator[str, None, None]:
 
 
 @pytest.fixture
+def mcp_env(database_url: str) -> Generator[str, None, None]:
+    """Wires the module-level engine `core.db` uses (the MCP tools call
+    `db.session_scope()`, not a session fixture, so this initializes the
+    same global the running server would) and truncates mutable tables
+    before each test for isolation, since MCP tool calls auto-commit.
+    """
+    from finance_mcp.core import db as db_module
+
+    db_module.init_engine(database_url)
+    engine = sa.create_engine(database_url)
+    with engine.begin() as conn:
+        conn.execute(
+            sa.text(
+                "TRUNCATE transactions, audit_log, budgets, alert_events RESTART IDENTITY CASCADE"
+            )
+        )
+    engine.dispose()
+    yield database_url
+
+
+@pytest.fixture
 def db_session(database_url: str) -> Generator[Session, None, None]:
     engine = sa.create_engine(database_url)
     connection = engine.connect()

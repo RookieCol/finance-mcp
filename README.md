@@ -119,6 +119,21 @@ Money is stored as integer minor units (`amount_minor`, e.g. cents) with an ISO 
 
 Registering this server with a real Hermes install, and the local `hermes-dev` compose profile for testing the live chat integration without Telegram/Slack, are documented once Stage 11 lands.
 
+**MCP tools** (Stage 4, `finance_mcp/mcp_server/server.py`) — 8 tools, stdio transport, each a thin wrapper over `core/`:
+
+| Tool | Purpose |
+|---|---|
+| `record_transaction` | Record income/expense. All fields accepted as optional at the schema level and validated internally — omitting one returns `clarification_needed`, not a hard MCP error (see the regression test in `tests/integration/test_mcp_tools.py`). |
+| `update_transaction` | Correct a field on an existing transaction. |
+| `list_transactions` | Filtered listing by type/category/date range. |
+| `get_totals` | Aggregate totals by category or month. |
+| `list_categories` | The valid category taxonomy — call before `record_transaction`. |
+| `get_projections` | Forecast, runway, MRR growth, with stated assumptions. |
+| `get_digest` | Prose-ready summary for a scheduled push (Hermes cron or the internal scheduler, Stage 7). |
+| `check_alerts` | Runs the proactive alert rules, returns newly-fired findings. |
+
+Try it locally without Hermes: `uv run mcp dev src/finance_mcp/mcp_server/server.py` (MCP Inspector) or call tools directly against a running server via the official MCP Python client — see `tests/integration/test_mcp_tools.py` for exactly that pattern.
+
 ## Status
 
 Build is executed stage-by-stage, each stage landing as its own commit(s) on `main` — this checklist is the source of truth for what currently exists versus what's still planned.
@@ -127,7 +142,7 @@ Build is executed stage-by-stage, each stage landing as its own commit(s) on `ma
 - [x] Stage 1 — Project scaffolding & tooling
 - [x] Stage 2 — Data model (Postgres + Alembic)
 - [x] Stage 3 — Shared core layer
-- [ ] Stage 4 — MCP tools
+- [x] Stage 4 — MCP tools
 - [ ] Stage 5 — Clarification / elicitation flow
 - [ ] Stage 6 — Internal UI
 - [ ] Stage 7 — Proactive scheduler

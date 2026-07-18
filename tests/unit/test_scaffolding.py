@@ -1,9 +1,8 @@
 """Smoke tests for Stage 1 (project scaffolding).
 
-Real coverage of core/, mcp_server/, web/, and scheduler/ behavior lands
-alongside those stages; this file just asserts the package is importable
-and correctly wired so CI has something meaningful to run from Stage 1
-onward instead of "no tests collected".
+Real coverage of core/, mcp_server/, and web/ behavior lands alongside
+their own stages (see test_repository.py, test_mcp_tools.py, etc.); this
+file just asserts the package is importable and correctly wired.
 """
 
 from fastapi import FastAPI
@@ -17,17 +16,6 @@ def test_package_imports() -> None:
 
 def test_web_app_is_a_fastapi_app() -> None:
     assert isinstance(app, FastAPI)
-
-
-def test_mcp_server_main_is_not_yet_implemented() -> None:
-    from finance_mcp.mcp_server.server import main
-
-    try:
-        main()
-    except NotImplementedError:
-        pass
-    else:
-        raise AssertionError("Expected NotImplementedError until Stage 4 lands")
 
 
 def test_scheduler_main_is_not_yet_implemented() -> None:
