@@ -22,6 +22,13 @@ def init_engine(database_url: str) -> Engine:
     return _engine
 
 
+def get_engine() -> Engine | None:
+    """None before ``init_engine`` has run (e.g. app startup not yet
+    complete) — used by health checks that must not raise in that window.
+    """
+    return _engine
+
+
 @contextmanager
 def session_scope() -> Iterator[Session]:
     if _session_factory is None:

@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Budgets — finance-mcp{% endblock %}
+{% block content %}
+<h1>Budgets</h1>
+<p class="muted">Monthly limits per expense category — what the proactive budget-overrun alert checks against.</p>
+
+{% if budgets %}
+<table>
+  <tr><th>Category</th><th>Monthly limit</th><th>Active</th><th></th></tr>
+  {% for b in budgets %}
+  <tr>
+    <td>{{ b.category }}</td>
+    <td>{{ b.currency }} {{ b.monthly_limit }}</td>
+    <td>{{ '✓' if b.active else '' }}</td>
+    <td>
+      <form class="inline" method="post" action="/budgets/{{ b.id }}/delete" onsubmit="return confirm('Remove this budget?');">
+        <button type="submit">remove</button>
+      </form>
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+{% else %}
+<p class="muted">No budgets configured yet.</p>
+{% endif %}
+
+<h3>Add a budget</h3>
+{% if errors %}
+<div class="card" style="border-color:#cf222e;"><ul>{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul></div>
+{% endif %}
+<form method="post" action="/budgets" class="form-grid">
+  <label for="category">Category</label>
+  <select name="category" id="category" required>
+    {% for c in expense_categories %}
+    <option value="{{ c.key }}">{{ c.key }}</option>
+    {% endfor %}
+  </select>
+  <label for="monthly_limit">Monthly limit</label>
+  <input type="text" name="monthly_limit" id="monthly_limit" placeholder="1000.00" required>
+  <label for="currency">Currency</label>
+  <input type="text" name="currency" id="currency" value="USD" maxlength="3">
+  <span></span>
+  <button type="submit">Add</button>
+</form>
+{% endblock %}

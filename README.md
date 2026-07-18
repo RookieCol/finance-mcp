@@ -134,6 +134,24 @@ Registering this server with a real Hermes install, and the local `hermes-dev` c
 
 Try it locally without Hermes: `uv run mcp dev src/finance_mcp/mcp_server/server.py` (MCP Inspector) or call tools directly against a running server via the official MCP Python client — see `tests/integration/test_mcp_tools.py` for exactly that pattern.
 
+**Internal UI** (Stage 6, `finance_mcp/web/`) — FastAPI + server-rendered Jinja2 templates, no separate frontend build, running through the same `core/` validation and storage as the MCP tools:
+
+```bash
+uv run uvicorn finance_mcp.web.app:app --reload   # http://127.0.0.1:8000
+```
+
+| Route | Purpose |
+|---|---|
+| `GET /` | Dashboard: this month by category, a plain-HTML/CSS net-cash-flow bar chart (history + forecast, no JS dependency), open alerts, recent transactions. |
+| `GET /transactions`, `/transactions/new`, `/transactions/{id}/edit`, `POST .../delete` | Filterable listing and manual CRUD, validated through `core.validation` — an invalid submission re-renders the form with field errors and writes nothing. |
+| `GET /transactions/{id}/history` | Per-transaction audit trail from `audit_log`. |
+| `GET /budgets`, `POST /budgets`, `POST /budgets/{id}/delete` | Manage the monthly limits the budget-overrun alert checks against. |
+| `GET /alerts`, `POST /alerts/{id}/acknowledge` | Alert history and acknowledgement. |
+| `GET /healthz` | DB connectivity check. |
+| `GET /metrics` | Prometheus exposition. |
+
+No auth in v1 — single-user, intended for localhost/private-network use; noted as a follow-up before any exposure beyond that.
+
 ## Status
 
 Build is executed stage-by-stage, each stage landing as its own commit(s) on `main` — this checklist is the source of truth for what currently exists versus what's still planned.
@@ -144,7 +162,7 @@ Build is executed stage-by-stage, each stage landing as its own commit(s) on `ma
 - [x] Stage 3 — Shared core layer
 - [x] Stage 4 — MCP tools
 - [x] Stage 5 — Clarification / elicitation flow
-- [ ] Stage 6 — Internal UI
+- [x] Stage 6 — Internal UI
 - [ ] Stage 7 — Proactive scheduler
 - [ ] Stage 8 — Observability (logging, tracing, metrics, Langfuse)
 - [ ] Stage 9 — Testing & CI

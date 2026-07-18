@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit' if transaction else 'New' }} transaction — finance-mcp{% endblock %}
+{% block content %}
+<h1>{{ 'Edit' if transaction else 'New' }} transaction</h1>
+
+{% if errors %}
+<div class="card" style="border-color:#cf222e;">
+  <strong>Please fix:</strong>
+  <ul>
+    {% for e in errors %}<li>{{ e.field }}: {{ e.message }}</li>{% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+<form method="post" action="{{ '/transactions/' ~ transaction.id ~ '/edit' if transaction else '/transactions/new' }}" class="form-grid">
+  <label for="type">Type</label>
+  <select name="type" id="type" required>
+    <option value="income" {{ 'selected' if form.type == 'income' }}>Income</option>
+    <option value="expense" {{ 'selected' if form.type == 'expense' }}>Expense</option>
+  </select>
+
+  <label for="amount">Amount</label>
+  <input type="text" name="amount" id="amount" value="{{ form.amount or '' }}" placeholder="50.00" required>
+
+  <label for="currency">Currency</label>
+  <input type="text" name="currency" id="currency" value="{{ form.currency or 'USD' }}" maxlength="3">
+
+  <label for="occurred_on">Date</label>
+  <input type="date" name="occurred_on" id="occurred_on" value="{{ form.occurred_on or '' }}" required>
+
+  <label for="description">Description</label>
+  <input type="text" name="description" id="description" value="{{ form.description or '' }}" required>
+
+  <label for="category">Category</label>
+  <select name="category" id="category" required>
+    {% for c in categories %}
+    <option value="{{ c.key }}" {{ 'selected' if form.category == c.key }}>{{ c.key }} ({{ c.type }})</option>
+    {% endfor %}
+  </select>
+
+  <label for="is_recurring">Recurring</label>
+  <input type="checkbox" name="is_recurring" id="is_recurring" {{ 'checked' if form.is_recurring }}>
+
+  <span></span>
+  <button type="submit">Save</button>
+</form>
+{% endblock %}

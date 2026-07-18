@@ -58,6 +58,11 @@ target-version = "py312"
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM", "C4"]
 
+[tool.ruff.lint.per-file-ignores]
+# FastAPI's `Depends(...)` as a parameter default is the documented,
+# idiomatic pattern (not the mutable-default-argument bug B008 targets).
+"src/finance_mcp/web/routes.py" = ["B008"]
+
 [tool.mypy]
 python_version = "3.12"
 warn_return_any = true

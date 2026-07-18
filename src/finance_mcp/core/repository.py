@@ -162,6 +162,48 @@ def list_active_budgets(session: Session) -> Sequence[Budget]:
     return session.scalars(select(Budget).where(Budget.active.is_(True))).all()
 
 
+def list_budgets(session: Session) -> Sequence[Budget]:
+    return session.scalars(select(Budget).order_by(Budget.category)).all()
+
+
+def create_budget(
+    session: Session, *, category: str, monthly_limit_minor: int, currency: str = "USD"
+) -> Budget:
+    row = Budget(category=category, monthly_limit_minor=monthly_limit_minor, currency=currency)
+    session.add(row)
+    session.flush()
+    return row
+
+
+def delete_budget(session: Session, budget_id: uuid.UUID) -> bool:
+    row = session.get(Budget, budget_id)
+    if row is None:
+        return False
+    session.delete(row)
+    return True
+
+
+def list_alerts(session: Session, *, limit: int = 100) -> Sequence[AlertEvent]:
+    return session.scalars(
+        select(AlertEvent).order_by(AlertEvent.detected_at.desc()).limit(limit)
+    ).all()
+
+
+def get_transaction(session: Session, transaction_id: uuid.UUID) -> Transaction | None:
+    row = session.get(Transaction, transaction_id)
+    if row is None or row.deleted_at is not None:
+        return None
+    return row
+
+
+def get_transaction_history(session: Session, transaction_id: uuid.UUID) -> Sequence[AuditLog]:
+    return session.scalars(
+        select(AuditLog)
+        .where(AuditLog.entity == "transaction", AuditLog.entity_id == transaction_id)
+        .order_by(AuditLog.at)
+    ).all()
+
+
 def list_open_alerts_for_rules(session: Session, rules: Sequence[str]) -> Sequence[AlertEvent]:
     return session.scalars(select(AlertEvent).where(AlertEvent.rule.in_(rules))).all()
 

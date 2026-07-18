@@ -66,6 +66,24 @@ def mcp_env(database_url: str) -> Generator[str, None, None]:
 
 
 @pytest.fixture
+def web_env(database_url: str, monkeypatch: pytest.MonkeyPatch) -> Generator[str, None, None]:
+    """Sets DATABASE_URL in the environment (the FastAPI app's own
+    lifespan reads it via `core.config.get_settings()` on startup) and
+    truncates mutable tables before each test.
+    """
+    monkeypatch.setenv("DATABASE_URL", database_url)
+    engine = sa.create_engine(database_url)
+    with engine.begin() as conn:
+        conn.execute(
+            sa.text(
+                "TRUNCATE transactions, audit_log, budgets, alert_events RESTART IDENTITY CASCADE"
+            )
+        )
+    engine.dispose()
+    yield database_url
+
+
+@pytest.fixture
 def db_session(database_url: str) -> Generator[Session, None, None]:
     engine = sa.create_engine(database_url)
     connection = engine.connect()

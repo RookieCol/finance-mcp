@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Alerts — finance-mcp{% endblock %}
+{% block content %}
+<h1>Alerts</h1>
+
+{% if alerts %}
+<table>
+  <tr><th>Rule</th><th>Severity</th><th>Detected</th><th>Delivered</th><th>Details</th><th></th></tr>
+  {% for a in alerts %}
+  <tr>
+    <td>{{ a.rule }}</td>
+    <td><span class="badge badge-{{ a.severity }}">{{ a.severity }}</span></td>
+    <td>{{ a.detected_at }}</td>
+    <td>{{ a.delivered_at or '—' }}</td>
+    <td><code>{{ a.payload }}</code></td>
+    <td>
+      <form class="inline" method="post" action="/alerts/{{ a.id }}/acknowledge">
+        <button type="submit">acknowledge</button>
+      </form>
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+{% else %}
+<p class="muted">No alerts — nothing currently needs your attention.</p>
+{% endif %}
+{% endblock %}

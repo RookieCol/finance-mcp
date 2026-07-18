@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}History — finance-mcp{% endblock %}
+{% block content %}
+<h1>Transaction history</h1>
+<p class="muted">Transaction {{ transaction_id }}</p>
+
+{% if entries %}
+<table>
+  <tr><th>When</th><th>Action</th><th>Actor</th><th>Changes</th></tr>
+  {% for e in entries %}
+  <tr>
+    <td>{{ e.at }}</td>
+    <td>{{ e.action }}</td>
+    <td>{{ e.actor_source }}</td>
+    <td><code>{{ e.changed_fields }}</code></td>
+  </tr>
+  {% endfor %}
+</table>
+{% else %}
+<p class="muted">No audit history found for this transaction.</p>
+{% endif %}
+
+<p><a href="/transactions">&larr; Back to transactions</a></p>
+{% endblock %}

@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — finance-mcp{% endblock %}
+{% block content %}
+<h1>Dashboard</h1>
+
+<div class="card">
+  <h3>This month by category</h3>
+  {% if category_totals %}
+  <table>
+    <tr><th>Category</th><th>Amount</th></tr>
+    {% for row in category_totals %}
+    <tr><td>{{ row.category }}</td><td>{{ row.currency }} {{ row.amount }}</td></tr>
+    {% endfor %}
+  </table>
+  {% else %}
+  <p class="muted">No transactions recorded yet.</p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <h3>Net cash flow — history + forecast</h3>
+  {% if bars %}
+  {% for bar in bars %}
+  <div class="bar-row">
+    <div class="bar-label">{{ bar.label }}{% if bar.is_forecast %} <span class="muted">(fcst)</span>{% endif %}</div>
+    <div class="bar-track">
+      <div class="bar-fill {{ 'positive' if bar.value >= 0 else 'negative' }}" style="width: {{ bar.width_pct }}%; margin-left: {{ bar.offset_pct }}%;"></div>
+    </div>
+    <div class="bar-value">{{ bar.display }}</div>
+  </div>
+  {% endfor %}
+  {% else %}
+  <p class="muted">Not enough data yet to chart.</p>
+  {% endif %}
+  <p class="muted">
+    Runway:
+    {% if runway_months is not none %}{{ "%.1f"|format(runway_months) }} months{% else %}n/a (not currently burning cash){% endif %}
+    &middot; MRR growth:
+    {% if mrr_growth_rate is not none %}{{ "%.1f"|format(mrr_growth_rate * 100) }}%{% else %}n/a{% endif %}
+  </p>
+</div>
+
+<div class="card">
+  <h3>Unacknowledged alerts</h3>
+  {% if open_alerts %}
+  <table>
+    <tr><th>Rule</th><th>Severity</th></tr>
+    {% for a in open_alerts %}
+    <tr><td>{{ a.rule }}</td><td><span class="badge badge-{{ a.severity }}">{{ a.severity }}</span></td></tr>
+    {% endfor %}
+  </table>
+  <p><a href="/alerts">View all alerts &rarr;</a></p>
+  {% else %}
+  <p class="muted">No open alerts.</p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <h3>Recent transactions</h3>
+  {% if recent %}
+  <table>
+    <tr><th>Date</th><th>Type</th><th>Category</th><th>Description</th><th>Amount</th></tr>
+    {% for t in recent %}
+    <tr>
+      <td>{{ t.occurred_on }}</td>
+      <td>{{ t.type }}</td>
+      <td>{{ t.category }}</td>
+      <td>{{ t.description }}</td>
+      <td class="amount-{{ t.type }}">{{ t.currency }} {{ t.amount }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  <p><a href="/transactions">View all transactions &rarr;</a></p>
+  {% else %}
+  <p class="muted">No transactions yet.</p>
+  {% endif %}
+</div>
+{% endblock %}
