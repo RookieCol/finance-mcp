@@ -22,7 +22,7 @@ from finance_mcp.web.routes import router
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     settings = get_settings()
     configure_logging(settings.log_level)
-    configure_tracing(settings.otel_exporter_otlp_endpoint)
+    configure_tracing(settings.otel_exporter_otlp_endpoint, settings.otel_exporter_otlp_headers)
     db.init_engine(settings.database_url)
     yield
 

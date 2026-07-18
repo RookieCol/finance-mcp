@@ -24,6 +24,8 @@ venv/
 # Docker
 docker/volumes/
 docker/backups/*.sql.gz
+docker/hermes/data/*
+!docker/hermes/data/.gitkeep
 
 # Editors / OS
 .idea/

@@ -137,7 +137,7 @@ Money is stored as integer minor units (`amount_minor`, e.g. cents) with an ISO 
 - `alerts.py` — proactive rules (budget overrun, spend spike, runway threshold, missing recurring income), deduplicated via `AlertEvent.dedup_key` so a standing condition doesn't re-fire every run, and cleared once the condition resolves.
 - `logging.py` / `tracing.py` — structured JSON logging with correlation IDs, and OpenTelemetry tracing (console exporter by default, OTLP when configured — Stage 8).
 
-Registering this server with a real Hermes install, and the local `hermes-dev` compose profile for testing the live chat integration without Telegram/Slack, are documented once Stage 11 lands.
+Registering this server with a real Hermes install is documented in "Connecting to Hermes" below; `docker-compose.hermes-dev.yml` (`--profile hermes-dev`) provides a local Hermes instance (with a free local LLM via Ollama by default) for testing the live chat integration without Telegram/Slack.
 
 **MCP tools** (Stage 4, `finance_mcp/mcp_server/server.py`) — 8 tools, stdio transport, each a thin wrapper over `core/`:
 
@@ -221,14 +221,15 @@ Build is executed stage-by-stage, each stage landing as its own commit(s) on `ma
 - [x] Stage 5 — Clarification / elicitation flow
 - [x] Stage 6 — Internal UI
 - [x] Stage 7 — Proactive scheduler
-- [x] Stage 8 — Observability — structured logging, tracing, `/metrics` (done as part of Stages 3/6). Self-hosted Langfuse + LiteLLM (agent tracing, LLM cost/budget governance) is **deprioritized/optional** — not required to run this repo, see "Deferred / optional" below.
+- [x] Stage 8 — Observability — structured logging, tracing, `/metrics`, plus the optional self-hosted Langfuse + LiteLLM profile (see below).
 - [x] Stage 9 — Testing & CI
 - [x] Stage 10 — Containerization & run story (incl. backups/restore)
-- Stage 11 — Hermes dev container & integration: **deprioritized/optional**, see below.
+- [x] Stage 11 — Hermes dev container & integration (`docker-compose.hermes-dev.yml`, see below)
 
-**Deferred / optional** (not required to build or run this repo; documented as future follow-ups):
-- Self-hosted Langfuse + LiteLLM proxy for agent-level tracing and LLM cost/budget governance.
-- A `hermes-dev` Docker Compose profile for testing the live Hermes chat integration locally. The MCP tool surface is fully tested independently (`tests/integration/test_mcp_tools.py`) and the registration steps for a real Hermes install are documented below — only the local dev-container convenience is deferred.
+**Optional profiles** (not required for the core `docker compose up` — see `docs/observability.md` for the Langfuse/LiteLLM piece):
+
+- **`docker-compose.langfuse.yml`** (`--profile langfuse`) — self-hosted [Langfuse](https://langfuse.com) (agent-execution tracing via this repo's own OTLP export) + a [LiteLLM](https://www.litellm.ai) proxy in front of Hermes' LLM provider for cost/budget governance (hard monthly cap, logged to Langfuse). Adapted from Langfuse's own official `docker-compose.yml` — its `postgres` service is renamed `langfuse-postgres` and moved off port 5432 to avoid colliding with this repo's own Postgres when the files are merged; validated with `docker compose ... config` (no port/name collisions) but the full 6-service stack itself wasn't started end-to-end here.
+- **`docker-compose.hermes-dev.yml`** (`--profile hermes-dev`) — a local Hermes Agent instance (official `nousresearch/hermes-agent` image) for testing the live chat → MCP integration without Telegram/Slack. Defaults to a **free, fully local LLM** via an `ollama` service running `qwen2.5:7b-instruct` (tool-calling capable, ~4.7GB — far lighter than the 20GB+ models some local-Hermes guides assume); an `ollama-pull` one-shot service downloads the model into a named volume. An OpenRouter (cloud) alternative is documented in `docker/hermes/config.yaml`'s comments for when you want better quality and don't mind the cost. The compose merge and the Ollama container itself were verified (`docker compose ... config`, `ollama` healthcheck passing); the model pull did not complete in this sandboxed environment (a transient TLS timeout mid-download against the Ollama registry, an environment network restriction — not a config bug) — so the live Hermes chat session itself is **not verified end-to-end here**. Re-running `ollama-pull` on a machine with normal network access should succeed; the MCP tool surface it would exercise is already fully tested independently (`tests/integration/test_mcp_tools.py`).
 
 ## License
 

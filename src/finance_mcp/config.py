@@ -21,6 +21,11 @@ class Settings(BaseSettings):
     ui_port: int = 8000
 
     otel_exporter_otlp_endpoint: str | None = None
+    # Standard OTEL comma-separated k=v format, e.g. one entry
+    # "Authorization=Basic <base64>" — how Langfuse's OTLP endpoint is
+    # authenticated (Basic Auth of public_key:secret_key). See
+    # docs/observability.md.
+    otel_exporter_otlp_headers: str | None = None
 
     # Stage 7 — proactive scheduler (internal fallback delivery path when
     # Hermes cron isn't available/configured).

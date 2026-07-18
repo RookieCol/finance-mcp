@@ -357,7 +357,7 @@ def check_alerts(cash_balance: str = "0") -> dict[str, Any]:
 def main() -> None:
     settings = get_settings()
     configure_logging(settings.log_level)
-    configure_tracing(settings.otel_exporter_otlp_endpoint)
+    configure_tracing(settings.otel_exporter_otlp_endpoint, settings.otel_exporter_otlp_headers)
     db.init_engine(settings.database_url)
     mcp.run(transport="stdio")
 

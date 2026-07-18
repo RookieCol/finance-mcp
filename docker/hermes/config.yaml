@@ -1,0 +1,48 @@
+# Minimal Hermes config for the hermes-dev compose profile.
+#
+# Registers finance-mcp as a local MCP server, and defaults to a free,
+# fully local LLM via Ollama (qwen2.5:7b-instruct — tool-calling capable,
+# ~4.7GB, far lighter than the 20GB+ models some local-Hermes guides
+# assume). Swap the `model:` block for the commented OpenRouter example
+# below if you'd rather use a cloud model.
+#
+# This file documents the config Hermes needs; on first run Hermes
+# persists its own copy under the mounted /opt/data, so merge this in
+# (or run `hermes setup` inside the container and answer accordingly)
+# rather than assuming this file alone is sufficient — exact merge
+# behavior depends on the Hermes version. See README "Connecting to
+# Hermes" for the equivalent `hermes mcp add` CLI form.
+
+model:
+  default: "qwen2.5:7b-instruct"
+  provider: "custom"
+  base_url: "http://ollama:11434/v1"
+  api_key: "no-key"          # Ollama doesn't require auth
+  context_length: 32768      # qwen2.5:7b-instruct's native window
+
+# --- OpenRouter alternative (cloud, costs money, better quality) ---
+# model:
+#   default: "anthropic/claude-3.5-sonnet"
+#   provider: "openrouter"
+#   api_key: "${OPENROUTER_API_KEY}"
+
+mcp_servers:
+  finance:
+    command: "uv"
+    args:
+      - "--directory"
+      - "/workspace/finance-mcp"
+      - "run"
+      - "finance-mcp"
+    env:
+      DATABASE_URL: "${FINANCE_DATABASE_URL}"
+    tools:
+      include:
+        - record_transaction
+        - update_transaction
+        - list_transactions
+        - get_totals
+        - list_categories
+        - get_projections
+        - get_digest
+        - check_alerts

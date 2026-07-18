@@ -1,0 +1,78 @@
+# Optional profile: a local Hermes Agent instance for testing the live
+# chat -> MCP integration without needing Telegram/Slack.
+#
+# Two LLM backends — pick one:
+#
+#   Free/local (default, no API key, no external cost):
+#     docker compose -f docker-compose.yml -f docker-compose.hermes-dev.yml \
+#       --profile hermes-dev up -d ollama
+#     docker compose -f docker-compose.yml -f docker-compose.hermes-dev.yml \
+#       --profile hermes-dev run --rm ollama-pull   # one-time model download
+#     docker compose -f docker-compose.yml -f docker-compose.hermes-dev.yml \
+#       --profile hermes-dev run --rm hermes hermes
+#     (config.yaml already points at Ollama — see docker/hermes/config.yaml)
+#
+#   Cloud (OpenRouter, better quality, costs money):
+#     set HERMES_LLM_API_KEY in .env, then edit docker/hermes/config.yaml's
+#     `model:` block to the OpenRouter example in that file's comments.
+#
+# Uses the official prebuilt image (nousresearch/hermes-agent) rather than
+# building Hermes from source. This repo's source is bind-mounted in so
+# Hermes can launch `finance-mcp` via `uv` against it (see
+# docker/hermes/config.yaml's mcp_servers.finance.command).
+#
+# NOT independently verified end-to-end in this environment (no way to
+# drive an interactive Hermes chat session headlessly here) — the MCP
+# tool surface itself is fully tested without Hermes
+# (tests/integration/test_mcp_tools.py). If `uv` isn't present in this
+# image version, adjust the command in docker/hermes/config.yaml to
+# whatever Python/uv path the image ships.
+services:
+  ollama:
+    image: ollama/ollama:latest
+    profiles: ["hermes-dev"]
+    volumes:
+      - ollama_data:/root/.ollama
+    healthcheck:
+      test: ["CMD-SHELL", "ollama list >/dev/null 2>&1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+  # One-shot: pulls the tool-calling-capable model used by
+  # docker/hermes/config.yaml's default (local) provider. Re-run is a
+  # no-op once the model is already cached in the ollama_data volume.
+  ollama-pull:
+    image: ollama/ollama:latest
+    profiles: ["hermes-dev"]
+    depends_on:
+      ollama:
+        condition: service_healthy
+    entrypoint: ["sh", "-c"]
+    command: ["ollama pull qwen2.5:7b-instruct"]
+    environment:
+      OLLAMA_HOST: "ollama:11434"
+
+  hermes:
+    image: nousresearch/hermes-agent:latest
+    profiles: ["hermes-dev"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+      ollama:
+        condition: service_healthy
+    volumes:
+      - ./docker/hermes/data:/opt/data
+      - .:/workspace/finance-mcp:ro
+    environment:
+      # Only needed if you switch config.yaml to the OpenRouter example.
+      OPENROUTER_API_KEY: ${HERMES_LLM_API_KEY:-}
+      FINANCE_DATABASE_URL: postgresql+psycopg://finance:finance@postgres:5432/finance
+    stdin_open: true
+    tty: true
+
+volumes:
+  ollama_data:

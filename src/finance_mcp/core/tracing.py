@@ -21,7 +21,11 @@ from opentelemetry.trace import Span, Tracer
 _SERVICE_NAME = "finance-mcp"
 
 
-def configure_tracing(otlp_endpoint: str | None = None) -> None:
+def configure_tracing(otlp_endpoint: str | None = None, otlp_headers: str | None = None) -> None:
+    """``otlp_headers`` is the standard OTEL comma-separated ``k=v`` format,
+    e.g. ``"Authorization=Basic <base64>"`` — how Langfuse's OTLP endpoint
+    is authenticated (Basic Auth of ``public_key:secret_key``).
+    """
     provider = TracerProvider(resource=Resource.create({SERVICE_NAME: _SERVICE_NAME}))
     provider.add_span_processor(SimpleSpanProcessor(ConsoleSpanExporter()))
 
@@ -33,9 +37,20 @@ def configure_tracing(otlp_endpoint: str | None = None) -> None:
             OTLPSpanExporter,
         )
 
-        provider.add_span_processor(BatchSpanProcessor(OTLPSpanExporter(endpoint=otlp_endpoint)))
+        provider.add_span_processor(
+            BatchSpanProcessor(
+                OTLPSpanExporter(endpoint=otlp_endpoint, headers=_parse_headers(otlp_headers))
+            )
+        )
 
     trace.set_tracer_provider(provider)
+
+
+def _parse_headers(raw: str | None) -> dict[str, str]:
+    if not raw:
+        return {}
+    pairs = (item.split("=", 1) for item in raw.split(",") if "=" in item)
+    return {key.strip(): value.strip() for key, value in pairs}
 
 
 def get_tracer() -> Tracer:
