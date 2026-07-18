@@ -1,0 +1,119 @@
+"""Aggregate queries — totals by category/month, month-over-month deltas.
+
+Powers both the `get_totals` MCP tool (Stage 4) and the UI dashboard
+(Stage 6). Aggregation happens in SQL over ``amount_minor`` (integers),
+never in Python floats.
+"""
+
+from dataclasses import dataclass
+from datetime import date
+from typing import Any
+
+from sqlalchemy import BigInteger, Select, func, select
+from sqlalchemy.orm import Session
+
+from finance_mcp.core.models import Transaction, TransactionType
+
+
+@dataclass(frozen=True)
+class CategoryTotal:
+    category: str
+    currency: str
+    total_minor: int
+
+
+@dataclass(frozen=True)
+class MonthTotal:
+    month: str  # "YYYY-MM"
+    currency: str
+    total_minor: int
+
+
+def totals_by_category(
+    session: Session,
+    *,
+    type: TransactionType | None = None,
+    date_from: date | None = None,
+    date_to: date | None = None,
+    is_recurring: bool | None = None,
+) -> list[CategoryTotal]:
+    stmt = (
+        select(
+            Transaction.category,
+            Transaction.currency,
+            func.sum(Transaction.amount_minor).cast(BigInteger).label("total_minor"),
+        )
+        .where(Transaction.deleted_at.is_(None))
+        .group_by(Transaction.category, Transaction.currency)
+        .order_by(Transaction.category)
+    )
+    stmt = _apply_common_filters(
+        stmt, type=type, date_from=date_from, date_to=date_to, is_recurring=is_recurring
+    )
+    rows = session.execute(stmt).all()
+    return [
+        CategoryTotal(category=r.category, currency=r.currency, total_minor=int(r.total_minor))
+        for r in rows
+    ]
+
+
+def totals_by_month(
+    session: Session,
+    *,
+    type: TransactionType | None = None,
+    date_from: date | None = None,
+    date_to: date | None = None,
+    is_recurring: bool | None = None,
+) -> list[MonthTotal]:
+    month_expr = func.to_char(Transaction.occurred_on, "YYYY-MM").label("month")
+    stmt = (
+        select(
+            month_expr,
+            Transaction.currency,
+            func.sum(Transaction.amount_minor).cast(BigInteger).label("total_minor"),
+        )
+        .where(Transaction.deleted_at.is_(None))
+        .group_by(month_expr, Transaction.currency)
+        .order_by(month_expr)
+    )
+    stmt = _apply_common_filters(
+        stmt, type=type, date_from=date_from, date_to=date_to, is_recurring=is_recurring
+    )
+    rows = session.execute(stmt).all()
+    return [
+        MonthTotal(month=r.month, currency=r.currency, total_minor=int(r.total_minor)) for r in rows
+    ]
+
+
+def month_over_month_delta(current: list[MonthTotal], previous_month: str) -> dict[str, int]:
+    """Given totals_by_month() output, return {currency: delta_minor}
+    between the latest month present and ``previous_month`` (e.g. "2026-06").
+    Pure function over already-fetched data — no DB access — so it's
+    trivially unit-testable against fixtures.
+    """
+    if not current:
+        return {}
+    latest_month = max(row.month for row in current)
+    latest = {row.currency: row.total_minor for row in current if row.month == latest_month}
+    previous = {row.currency: row.total_minor for row in current if row.month == previous_month}
+    currencies = set(latest) | set(previous)
+    return {ccy: latest.get(ccy, 0) - previous.get(ccy, 0) for ccy in currencies}
+
+
+def _apply_common_filters[S: Select[Any]](
+    stmt: S,
+    *,
+    type: TransactionType | None,
+    date_from: date | None,
+    date_to: date | None,
+    is_recurring: bool | None = None,
+) -> S:
+    if type is not None:
+        stmt = stmt.where(Transaction.type == type)
+    if date_from is not None:
+        stmt = stmt.where(Transaction.occurred_on >= date_from)
+    if date_to is not None:
+        stmt = stmt.where(Transaction.occurred_on <= date_to)
+    if is_recurring is not None:
+        stmt = stmt.where(Transaction.is_recurring.is_(is_recurring))
+    return stmt

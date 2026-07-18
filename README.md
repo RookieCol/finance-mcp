@@ -106,7 +106,16 @@ uv run alembic upgrade head      # apply all migrations, incl. category taxonomy
 uv run alembic downgrade base    # tear back down — verified to be a true inverse (tables + enum types)
 ```
 
-Money is stored as integer minor units (`amount_minor`, e.g. cents) with an ISO 4217 currency code — never a float — per the fintech engineering practices linked below. Every transaction write is meant to be idempotent (`idempotency_key`) and soft-deleted (`deleted_at`), with a parallel append-only `audit_log`.
+Money is stored as integer minor units (`amount_minor`, e.g. cents) with an ISO 4217 currency code — never a float — per the fintech engineering practices linked below. Every transaction write is idempotent (`idempotency_key`) and soft-deleted (`deleted_at`), with a parallel append-only `audit_log`.
+
+**Core layer** (`finance_mcp/core/`, Stage 3) is the single implementation both the MCP tools (Stage 4) and the internal UI (Stage 6) call into:
+
+- `validation.py` — pure, no DB: turns raw chat/form input into a `ValidTransaction` or a list of `ValidationIssue`s (missing/invalid fields), which is exactly what Stage 5's clarification flow asks the user about.
+- `repository.py` — CRUD, idempotent `create_transaction`, soft delete, and an audit-log entry written in the same transaction as every write.
+- `reporting.py` — SQL aggregates (totals by category/month). Postgres `SUM()` over a `bigint` column returns `numeric` (Decimal) over the wire — caught by an integration test, fixed with an explicit cast back to `bigint` so callers only ever see `int`.
+- `projections.py` — deterministic forecast/runway/growth math (no LLM), split into hand-verifiable pure functions and a DB-backed orchestrator. Historical trend data explicitly excludes recurring transactions to avoid double-counting them against the recurring base — also caught by an integration test.
+- `alerts.py` — proactive rules (budget overrun, spend spike, runway threshold, missing recurring income), deduplicated via `AlertEvent.dedup_key` so a standing condition doesn't re-fire every run, and cleared once the condition resolves.
+- `logging.py` / `tracing.py` — structured JSON logging with correlation IDs, and OpenTelemetry tracing (console exporter by default, OTLP when configured — Stage 8).
 
 Registering this server with a real Hermes install, and the local `hermes-dev` compose profile for testing the live chat integration without Telegram/Slack, are documented once Stage 11 lands.
 
@@ -117,7 +126,7 @@ Build is executed stage-by-stage, each stage landing as its own commit(s) on `ma
 - [x] Stage 0 — Repository bootstrap
 - [x] Stage 1 — Project scaffolding & tooling
 - [x] Stage 2 — Data model (Postgres + Alembic)
-- [ ] Stage 3 — Shared core layer
+- [x] Stage 3 — Shared core layer
 - [ ] Stage 4 — MCP tools
 - [ ] Stage 5 — Clarification / elicitation flow
 - [ ] Stage 6 — Internal UI
