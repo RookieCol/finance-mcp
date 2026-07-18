@@ -180,6 +180,35 @@ uv run finance-scheduler
 
 Runs `core.alerts.evaluate_alerts` daily and a weekly digest (`core.projections` + `core.reporting`), delivering via a pluggable notifier — a generic webhook POST (`NOTIFIER_WEBHOOK_URL`, works with Slack/Discord incoming webhooks) or, if unset, a log-only notifier so nothing is silently dropped. Alert delivery is idempotent: `core.alerts` dedupes by `AlertEvent.dedup_key`, so re-running the check doesn't re-send an already-open finding. The **primary** path, once Hermes is available, is Hermes cron calling the `get_digest`/`check_alerts` MCP tools directly and posting the result to chat — no code on this side, just a `hermes cron` recipe (documented below); this scheduler exists so alerts/digests work even without a Hermes install.
 
+## Connecting to Hermes
+
+On the machine where Hermes Agent actually runs (not required for this repo's own build/tests):
+
+```bash
+hermes mcp add finance --command "/app/.venv/bin/finance-mcp"
+```
+
+or the equivalent `mcp_servers:` block in Hermes' `config.yaml`:
+
+```yaml
+mcp_servers:
+  finance:
+    command: "/app/.venv/bin/finance-mcp"   # or `finance-mcp` if installed on PATH outside Docker
+    env:
+      DATABASE_URL: "postgresql+psycopg://finance:finance@<host>:5432/finance"
+    tools:
+      include:
+        [record_transaction, update_transaction, list_transactions, get_totals,
+         list_categories, get_projections, get_digest, check_alerts]
+```
+
+Then, for proactive digests/alerts via Hermes' own cron scheduler instead of (or in addition to) the internal `finance-scheduler` (Stage 7):
+
+- *"Every Monday at 9am, call the finance get_digest tool and post the result to Telegram."*
+- *"Every day at 8am, call the finance check_alerts tool and post any new alerts to Telegram."*
+
+No changes to Hermes' own code are needed either way — this is pure configuration on top of Hermes' existing MCP client and cron scheduler.
+
 ## Status
 
 Build is executed stage-by-stage, each stage landing as its own commit(s) on `main` — this checklist is the source of truth for what currently exists versus what's still planned.
