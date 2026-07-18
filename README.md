@@ -1,0 +1,125 @@
+# finance-mcp
+
+Internal finance system for a bootstrapped SaaS: an [MCP](https://modelcontextprotocol.io) server that turns a chat conversation into structured income/expense records, plus an internal web UI, a proactive projections/alerting engine, and the observability and CI scaffolding expected of a production service — not a personal script.
+
+## What this is
+
+The primary interaction surface is chat: a message like *"pagué 50 dólares a AWS ayer"* or a forwarded receipt should end up as a structured, validated transaction in Postgres, without the user filling out a form. The chat side is handled by [Hermes Agent](https://github.com/NousResearch/hermes-agent), an existing personal AI agent the user already runs on Telegram/Slack — this repository does not build a chatbot, it builds the **tool Hermes calls**.
+
+Three things this project is *not*:
+
+- Not a second LLM. Hermes' own model already reads free text and image attachments; this server is a thin, deterministic **validation + storage + analytics layer** behind MCP tools. No duplicated extraction logic, no second inference cost.
+- Not reactive-only. Beyond recording what already happened, the system computes forward-looking **projections** (cash-flow forecast, runway, MRR trend) and runs a **proactive alert engine** (budget overruns, spend spikes, missing recurring income) on a schedule — pushed to chat, not waited on.
+- Not a toy. Money is stored as integer minor units (never floats), every write is idempotent and audit-logged, migrations are versioned, and the service ships with CI, structured logging, tracing, metrics, backups, and a tested restore path.
+
+Domain background (SaaS accounting fundamentals, the category taxonomy, and the metric formulas this project implements) lives in [`finanzas-saas.md`](../finanzas-saas.md), a research document produced before this build started.
+
+## Why MCP, not A2A
+
+Hermes has no native support for Google's Agent2Agent (A2A) protocol, but it does have first-class MCP client support — external servers are registered with `hermes mcp add NAME --command "..."` (or a `mcp_servers:` block in `config.yaml`), with per-server tool allowlisting. MCP is also the protocol Hermes' own LLM already speaks fluently for tool calls, and it has a formal **elicitation** capability (`elicitation/create`) that lets a tool call pause and ask the user a clarifying question mid-conversation — exactly the "don't guess, ask" behavior this project needs when a transaction description is ambiguous. Building an A2A server would mean implementing a protocol Hermes can't consume; MCP is the integration surface that actually exists.
+
+## Architecture
+
+```mermaid
+flowchart LR
+    subgraph Chat
+        H[Hermes Agent<br/>Telegram / Slack / CLI]
+    end
+
+    subgraph finance-mcp
+        M[MCP server<br/>stdio]
+        C[core/<br/>validation · repository<br/>projections · alerts]
+        S[scheduler<br/>proactive digests & alerts]
+        W[Internal web UI<br/>FastAPI]
+    end
+
+    PG[(Postgres)]
+    LF[Langfuse<br/>self-hosted, optional]
+
+    H <--MCP tools--> M
+    M --> C
+    S --> C
+    W --> C
+    C --> PG
+    M -. traces .-> LF
+    W -. traces .-> LF
+```
+
+Both entry points — the MCP tools Hermes calls and the internal UI a human uses directly — go through the same `core/` validation and storage layer, so a transaction created by chat and one entered by hand are governed by identical rules, and every write is logged/traced identically regardless of source.
+
+## Tech stack
+
+| Concern | Choice |
+|---|---|
+| Language / packaging | Python, [`uv`](https://github.com/astral-sh/uv) (matches Hermes' own tooling) |
+| MCP server | official `mcp` Python SDK, stdio transport |
+| Web UI | FastAPI + Jinja2/HTMX (server-rendered, no separate frontend build) |
+| Database | Postgres, SQLAlchemy, Alembic migrations |
+| Scheduler | APScheduler (fallback path when Hermes cron isn't available) |
+| Logging / tracing / metrics | `structlog` (JSON), OpenTelemetry, `prometheus-client` |
+| Agent observability & cost | [Langfuse](https://langfuse.com) (self-hosted) + LiteLLM proxy for budget governance, optional compose profile |
+| Lint / types | `ruff`, `mypy` |
+| Security | `bandit`, `pip-audit`, `gitleaks` |
+| Tests | `pytest`, `testcontainers` (real Postgres in CI, no DB mocking), `hypothesis` (property-based tests on money math) |
+| CI | GitHub Actions |
+| Containers | Docker, Docker Compose (profiles for `langfuse` and `hermes-dev`) |
+
+## Repository layout
+
+```
+finance_mcp/
+  core/          # domain layer: repository, validation, reporting, projections, alert engine, logging/tracing
+  mcp_server/    # MCP tool definitions (thin wrappers over core/)
+  web/           # FastAPI app + templates for the internal UI (thin wrappers over core/)
+  scheduler/     # proactive digest/alert runner (no-Hermes fallback delivery)
+  config.py      # environment-driven settings, fail-fast on missing/invalid values
+tests/
+alembic/         # versioned database migrations
+docker/          # compose profile support files (hermes-dev config, etc.)
+.github/workflows/
+Dockerfile
+docker-compose.yml
+```
+
+## How to run
+
+Not yet runnable — this README documents the target shape of the project and is updated as each build stage lands (see **Status** below).
+
+**Docker Compose (primary path, once available):**
+
+```bash
+cp .env.example .env   # fill in DATABASE_URL and any provider keys
+docker compose up
+```
+
+**Plain local dev (once available):**
+
+```bash
+uv sync
+uv run alembic upgrade head
+uv run finance-mcp        # MCP server, stdio
+uv run uvicorn finance_mcp.web.app:app --reload   # internal UI
+```
+
+Registering this server with a real Hermes install, and the local `hermes-dev` compose profile for testing the live chat integration without Telegram/Slack, are documented once Stage 11 lands.
+
+## Status
+
+Build is executed stage-by-stage, each stage landing as its own commit(s) on `main` — this checklist is the source of truth for what currently exists versus what's still planned.
+
+- [x] Stage 0 — Repository bootstrap
+- [ ] Stage 1 — Project scaffolding & tooling
+- [ ] Stage 2 — Data model (Postgres + Alembic)
+- [ ] Stage 3 — Shared core layer
+- [ ] Stage 4 — MCP tools
+- [ ] Stage 5 — Clarification / elicitation flow
+- [ ] Stage 6 — Internal UI
+- [ ] Stage 7 — Proactive scheduler
+- [ ] Stage 8 — Observability (logging, tracing, metrics, Langfuse)
+- [ ] Stage 9 — Testing & CI
+- [ ] Stage 10 — Containerization & run story (incl. backups/restore)
+- [ ] Stage 11 — Hermes dev container & integration
+
+## License
+
+MIT — see [LICENSE](LICENSE).
