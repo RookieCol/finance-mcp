@@ -62,7 +62,7 @@ Both entry points — the MCP tools Hermes calls and the internal UI a human use
 | Security | `bandit`, `pip-audit`, `gitleaks` |
 | Tests | `pytest`, `testcontainers` (real Postgres in CI, no DB mocking), `hypothesis` (property-based tests on money math) |
 | CI | GitHub Actions |
-| Containers | Docker, Docker Compose (profiles for `langfuse` and `hermes-dev`) |
+| Containers | Docker, Docker Compose |
 
 ## Repository layout
 
@@ -83,7 +83,25 @@ docker-compose.yml
 
 ## How to run
 
-Docker Compose and a working database are not wired up yet (Stages 2 and 10) — this README's run instructions are updated as each stage lands. What already works, today:
+**Docker Compose (primary path):**
+
+```bash
+cp .env.example .env   # optional: set NOTIFIER_WEBHOOK_URL for real alert/digest delivery
+docker compose up -d
+curl http://localhost:8000/healthz   # {"status":"ok"}
+```
+
+Brings up Postgres, runs migrations (`migrate`, a one-shot service), then the web UI (`web`, `:8000`), the proactive `scheduler`, and a `backup` service that `pg_dump`s the database on startup and then daily, pruning dumps older than `RETENTION_DAYS` (default 14) into `docker/backups/`. The MCP server isn't a standing compose service (it's a stdio process a client like Hermes launches on demand) — run it ad hoc with `docker compose run --rm web finance-mcp` or locally per below.
+
+**Backup & restore drill** — a backup nobody has restored is unverified:
+
+```bash
+scripts/restore.sh docker/backups/finance-<timestamp>.sql.gz
+```
+
+Restores into whatever `PGHOST`/`PGPORT`/`PGUSER`/`PGDATABASE` are set to (defaults: `localhost`/`5432`/`finance`/`finance`) — point it at a throwaway database for a dry run, or the real one for actual disaster recovery. For production, copy `docker/backups/` offsite (3-2-1 rule) — this repo only handles the local dump/prune side.
+
+**Plain local dev (no Docker):**
 
 ```bash
 uv sync --all-groups
@@ -176,7 +194,7 @@ Build is executed stage-by-stage, each stage landing as its own commit(s) on `ma
 - [x] Stage 7 — Proactive scheduler
 - [x] Stage 8 — Observability — structured logging, tracing, `/metrics` (done as part of Stages 3/6). Self-hosted Langfuse + LiteLLM (agent tracing, LLM cost/budget governance) is **deprioritized/optional** — not required to run this repo, see "Deferred / optional" below.
 - [x] Stage 9 — Testing & CI
-- [ ] Stage 10 — Containerization & run story (incl. backups/restore)
+- [x] Stage 10 — Containerization & run story (incl. backups/restore)
 - Stage 11 — Hermes dev container & integration: **deprioritized/optional**, see below.
 
 **Deferred / optional** (not required to build or run this repo; documented as future follow-ups):

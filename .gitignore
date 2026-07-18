@@ -23,6 +23,7 @@ venv/
 
 # Docker
 docker/volumes/
+docker/backups/*.sql.gz
 
 # Editors / OS
 .idea/

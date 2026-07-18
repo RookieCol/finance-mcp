@@ -18,6 +18,22 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  docker-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lint Dockerfile (hadolint)
+        uses: hadolint/hadolint-action@v3
+        with:
+          dockerfile: Dockerfile
+
+  docker-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build all compose images
+        run: docker compose build
+
   lint-and-test:
     runs-on: ubuntu-latest
     steps:
