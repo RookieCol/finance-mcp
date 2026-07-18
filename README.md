@@ -83,23 +83,20 @@ docker-compose.yml
 
 ## How to run
 
-Not yet runnable — this README documents the target shape of the project and is updated as each build stage lands (see **Status** below).
-
-**Docker Compose (primary path, once available):**
+Docker Compose and a working database are not wired up yet (Stages 2 and 10) — this README's run instructions are updated as each stage lands. What already works, today:
 
 ```bash
-cp .env.example .env   # fill in DATABASE_URL and any provider keys
-docker compose up
+uv sync --all-groups
+cp .env.example .env          # DATABASE_URL is required even though nothing reads the DB yet
+uv run ruff check .           # lint
+uv run mypy src/finance_mcp   # type-check
+uv run bandit -c pyproject.toml -r src/finance_mcp   # SAST
+uv run pip-audit              # dependency vulnerabilities
+uv run pytest --cov=finance_mcp --cov-report=term-missing   # tests
+uv run pre-commit install     # wires the same checks into git hooks locally
 ```
 
-**Plain local dev (once available):**
-
-```bash
-uv sync
-uv run alembic upgrade head
-uv run finance-mcp        # MCP server, stdio
-uv run uvicorn finance_mcp.web.app:app --reload   # internal UI
-```
+The `finance-mcp`, `finance-web`, and `finance-scheduler` console scripts exist but intentionally raise `NotImplementedError` until their respective stages (4, 6, 7) land — this keeps the package importable and testable from Stage 1 without pretending functionality exists before it does.
 
 Registering this server with a real Hermes install, and the local `hermes-dev` compose profile for testing the live chat integration without Telegram/Slack, are documented once Stage 11 lands.
 
@@ -108,7 +105,7 @@ Registering this server with a real Hermes install, and the local `hermes-dev` c
 Build is executed stage-by-stage, each stage landing as its own commit(s) on `main` — this checklist is the source of truth for what currently exists versus what's still planned.
 
 - [x] Stage 0 — Repository bootstrap
-- [ ] Stage 1 — Project scaffolding & tooling
+- [x] Stage 1 — Project scaffolding & tooling
 - [ ] Stage 2 — Data model (Postgres + Alembic)
 - [ ] Stage 3 — Shared core layer
 - [ ] Stage 4 — MCP tools

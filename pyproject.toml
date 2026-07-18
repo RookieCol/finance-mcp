@@ -1,0 +1,82 @@
+[project]
+name = "finance-mcp"
+version = "0.1.0"
+description = "MCP server + internal UI for a SaaS's income/expense tracking, projections, and proactive alerting."
+readme = "README.md"
+license = "MIT"
+authors = [
+    { name = "rookiecol", email = "juan.diegoam@hotmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "mcp>=1.6",
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.34",
+    "jinja2>=3.1",
+    "sqlalchemy>=2.0",
+    "psycopg[binary]>=3.2",
+    "alembic>=1.14",
+    "pydantic>=2.9",
+    "pydantic-settings>=2.6",
+    "structlog>=24.4",
+    "opentelemetry-sdk>=1.29",
+    "opentelemetry-instrumentation-fastapi>=0.50b0",
+    "prometheus-client>=0.21",
+    "apscheduler>=3.11",
+    "httpx>=0.28",
+]
+
+[project.scripts]
+finance-mcp = "finance_mcp.mcp_server.server:main"
+finance-web = "finance_mcp.web.app:main"
+finance-scheduler = "finance_mcp.scheduler.runner:main"
+
+[build-system]
+requires = ["uv_build>=0.11.19,<0.12.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "pytest-asyncio>=0.24",
+    "pytest-cov>=6.0",
+    "testcontainers[postgres]>=4.9",
+    "hypothesis>=6.122",
+    "ruff>=0.8",
+    "mypy>=1.13",
+    "bandit>=1.8",
+    "pip-audit>=2.7",
+    "pre-commit>=4.0",
+    "commitizen>=4.1",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "C4"]
+
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+
+[[tool.mypy.overrides]]
+module = "finance_mcp.core.*"
+disallow_untyped_defs = true
+disallow_any_generics = true
+strict = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[tool.commitizen]
+name = "cz_conventional_commits"
+version = "0.1.0"
+tag_format = "v$version"
+
+[tool.bandit]
+exclude_dirs = ["tests", ".venv"]
