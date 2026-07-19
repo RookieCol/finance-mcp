@@ -14,11 +14,11 @@
 # Hermes" for the equivalent `hermes mcp add` CLI form.
 
 model:
-  default: "qwen2.5:7b-instruct"
+  default: "qwen2.5-64k"      # tagged variant, see docker/hermes/Modelfile
   provider: "custom"
   base_url: "http://ollama:11434/v1"
-  api_key: "no-key"          # Ollama doesn't require auth
-  context_length: 32768      # qwen2.5:7b-instruct's native window
+  api_key: "no-key"           # Ollama doesn't require auth
+  context_length: 65536       # Hermes requires >= 64K; base tag defaults to 32K
 
 # --- OpenRouter alternative (cloud, costs money, better quality) ---
 # model:

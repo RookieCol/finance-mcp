@@ -41,8 +41,12 @@ services:
       start_period: 10s
 
   # One-shot: pulls the tool-calling-capable model used by
-  # docker/hermes/config.yaml's default (local) provider. Re-run is a
-  # no-op once the model is already cached in the ollama_data volume.
+  # docker/hermes/config.yaml's default (local) provider, then tags a
+  # `qwen2.5-64k` variant with a raised context window — Ollama serves
+  # qwen2.5:7b-instruct at a 32K default despite the model supporting up
+  # to 128K natively, and Hermes Agent refuses anything under 64K for its
+  # multi-step tool-calling working memory (see docker/hermes/Modelfile).
+  # Both steps are no-ops on re-run once already present.
   ollama-pull:
     image: ollama/ollama:latest
     profiles: ["hermes-dev"]
@@ -50,9 +54,12 @@ services:
       ollama:
         condition: service_healthy
     entrypoint: ["sh", "-c"]
-    command: ["ollama pull qwen2.5:7b-instruct"]
+    command:
+      - "ollama pull qwen2.5:7b-instruct && ollama create qwen2.5-64k -f /Modelfile"
     environment:
       OLLAMA_HOST: "ollama:11434"
+    volumes:
+      - ./docker/hermes/Modelfile:/Modelfile:ro
 
   hermes:
     image: nousresearch/hermes-agent:latest
