@@ -20,6 +20,16 @@ model:
   api_key: "no-key"           # Ollama doesn't require auth
   context_length: 65536       # Hermes requires >= 64K; base tag defaults to 32K
 
+# qwen2.5 is a plain instruct model (no extended-thinking support). Hermes
+# defaults to agent.reasoning_effort: medium and sends a "thinking"
+# request param regardless of provider — Ollama's /v1 endpoint rejects
+# that with HTTP 400 ("does not support thinking") for a non-reasoning
+# model. Only reasoning_effort is overridden here; scripts/patch_hermes_config.py
+# merges it into the existing `agent:` block rather than replacing it, so
+# Hermes-managed keys (personalities, max_turns, ...) are preserved.
+agent:
+  reasoning_effort: "none"
+
 # --- OpenRouter alternative (cloud, costs money, better quality) ---
 # model:
 #   default: "anthropic/claude-3.5-sonnet"
