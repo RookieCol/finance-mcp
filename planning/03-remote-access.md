@@ -24,7 +24,7 @@ The UI currently has no auth (README: localhost/private-network only). Minimum v
 
 The MCP server is stdio-only: clients must live on the same machine. Exposing it over streamable HTTP enables claude.ai custom connectors and a remote Hermes.
 
-- FastMCP already supports the transport: `mcp.run(transport="streamable-http")` behind a new entrypoint (`finance-mcp-http`), mounted on its own port or path.
+- FastMCP already supports the transport: `mcp.run(transport="streamable-http")` behind a new entrypoint (`caudal-mcp-http`), mounted on its own port or path.
 - **Auth:** static bearer token from env checked in middleware; TLS terminated by a reverse proxy (Caddy/Traefik) — never exposed bare.
 - **Scope tightening:** the HTTP surface can expose a reduced tool set (e.g. capture + read tools, no `update_transaction`) if the remote channel warrants less trust.
 - Elicitation behavior must be re-verified over HTTP transport (it was designed against stdio).

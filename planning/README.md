@@ -1,6 +1,6 @@
 # Planning
 
-Roadmap for evolving finance-mcp from a cash ledger into the operating system of the business. Each phase is independently shippable; order reflects value, not convenience.
+Roadmap for evolving Caudal from a cash ledger into the operating system of the business. Each phase is independently shippable; order reflects value, not convenience.
 
 | Phase | Scope | Status |
 |---|---|---|

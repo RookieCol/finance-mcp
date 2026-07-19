@@ -6,13 +6,11 @@
 
 **Ask, don't guess.**
 
-**Caudal** (Spanish: both *water flow* and *wealth*) — the finance OS for a bootstrapped SaaS: an [MCP](https://modelcontextprotocol.io) server that turns a chat conversation into structured income/expense records, plus an internal web UI and a proactive projections/alerting engine.
+**Caudal** (Spanish: both *water flow* and *wealth*) — the finance OS for a bootstrapped SaaS.
 
-> The Python package keeps its original name (`finance_mcp`) — the repo and product are Caudal.
+Excel wasn't going to hold up as the finances of the business grew, and a nicer spreadsheet wasn't the fix — that's just the same manual entry with better colors. Caudal was built from day one as something else: a navigation map for Vertex and whatever it ships next, not a chore that demands data entry as the price of admission. So it lives inside the tools already in use — [Hermes Agent](https://github.com/NousResearch/hermes-agent), Vertex's day-to-day operating agent, for quick capture and checks, and Claude as the interface for decisions that go beyond what a daily agent should carry (scenario modeling, quarterly reviews, what's next). Concretely, that's two doors into one source of truth: a server-side web interface, and an [MCP](https://modelcontextprotocol.io) server exposing the same capabilities as tools.
 
 ## What this is
-
-The primary interaction surface is chat: a message like *"pagué 50 dólares a AWS ayer"* should end up as a structured, validated transaction in Postgres. The chat side is handled by [Hermes Agent](https://github.com/NousResearch/hermes-agent) — this repo doesn't build a chatbot, it builds the **tool Hermes calls**.
 
 - Money is stored as integer minor units (never floats), every write is idempotent and audit-logged.
 - **Single-currency ledger by construction:** USD amounts are converted to COP at the official daily TRM (Banco de la República, via datos.gov.co) at record time (`core/fx.py`) — aggregates never mix currencies.
@@ -70,7 +68,7 @@ Both entry points — MCP tools and the internal UI — go through the same `cor
 ## Repository layout
 
 ```
-finance_mcp/
+caudal/
   core/          # domain layer: repository, validation, reporting, projections, alerts, fx (TRM), logging/tracing
   mcp_server/    # MCP tool definitions (thin wrappers over core/)
   web/           # FastAPI app, Jinja templates, static design system, server-side SVG charts
@@ -88,7 +86,7 @@ docker-compose.yml
 ## How to run
 
 ```bash
-make all     # core app + pre-build the finance-mcp venv Hermes needs
+make all     # core app + pre-build the caudal venv Hermes needs
 make chat    # interactive Hermes chat session (set OPENROUTER_API_KEY in .env first)
 make help    # every target: up / hermes-warm / chat / ps / logs / down / down-all / restore-drill
 ```
@@ -108,7 +106,7 @@ This brings up Postgres, runs migrations, the web UI (`:8000`), the proactive sc
 ```bash
 uv sync --all-groups
 cp .env.example .env
-uv run pytest --cov=finance_mcp --cov-report=term-missing   # 85% coverage gate, real Postgres via testcontainers
+uv run pytest --cov=caudal --cov-report=term-missing   # 85% coverage gate, real Postgres via testcontainers
 uv run pre-commit install
 ```
 
@@ -117,24 +115,24 @@ CI (`.github/workflows/ci.yml`) runs lint → type-check → SAST → dependency
 ## Core concepts
 
 - **`core/`** is the single implementation both MCP tools and the UI call into: `validation.py` (pure input validation), `repository.py` (idempotent CRUD + audit log), `reporting.py`/`projections.py` (SQL aggregates, deterministic forecast/runway math — no LLM), `alerts.py` (deduplicated proactive rules).
-- **MCP tools** (`finance_mcp/mcp_server/server.py`, 8 tools): `record_transaction`, `update_transaction`, `list_transactions`, `get_totals`, `list_categories`, `get_projections`, `get_digest`, `check_alerts`. `record_transaction` tries MCP elicitation for missing/invalid fields before falling back to a structured `clarification_needed` result. Try it without Hermes via `uv run mcp dev src/finance_mcp/mcp_server/server.py`.
-- **Internal UI** (`finance_mcp/web/`, `uv run uvicorn finance_mcp.web.app:app --reload`): dashboard (net cash flow hero, runway meter, expense/infra breakdowns), transaction/budget CRUD, alert history with human-readable payloads, projections (forecast + assumptions), reports (net by month, MoM deltas, category breakdowns with date filters), `/healthz`, `/metrics`. Light/dark, mobile bottom-tab navigation. No auth in v1 — single-user, localhost/private-network use only (see `planning/03-remote-access.md`).
-- **Scheduler** (`uv run finance-scheduler`): daily alert check + weekly digest, delivered via webhook (`NOTIFIER_WEBHOOK_URL`) or logged if unset. This is the fallback path — once Hermes is available, its own cron calling `get_digest`/`check_alerts` is the primary delivery path (see below).
+- **MCP tools** (`caudal/mcp_server/server.py`, 8 tools): `record_transaction`, `update_transaction`, `list_transactions`, `get_totals`, `list_categories`, `get_projections`, `get_digest`, `check_alerts`. `record_transaction` tries MCP elicitation for missing/invalid fields before falling back to a structured `clarification_needed` result. Try it without Hermes via `uv run mcp dev src/caudal/mcp_server/server.py`.
+- **Internal UI** (`caudal/web/`, `uv run uvicorn caudal.web.app:app --reload`): dashboard (net cash flow hero, runway meter, expense/infra breakdowns), transaction/budget CRUD, alert history with human-readable payloads, projections (forecast + assumptions), reports (net by month, MoM deltas, category breakdowns with date filters), `/healthz`, `/metrics`. Light/dark, mobile bottom-tab navigation. No auth in v1 — single-user, localhost/private-network use only (see `planning/03-remote-access.md`).
+- **Scheduler** (`uv run caudal-scheduler`): daily alert check + weekly digest, delivered via webhook (`NOTIFIER_WEBHOOK_URL`) or logged if unset. This is the fallback path — once Hermes is available, its own cron calling `get_digest`/`check_alerts` is the primary delivery path (see below).
 
 ## Connecting to Hermes
 
 On the machine where Hermes actually runs:
 
 ```bash
-hermes mcp add finance --command "/app/.venv/bin/finance-mcp"
+hermes mcp add caudal --command "/app/.venv/bin/caudal-mcp"
 ```
 
 or the equivalent in `config.yaml`:
 
 ```yaml
 mcp_servers:
-  finance:
-    command: "/app/.venv/bin/finance-mcp"
+  caudal:
+    command: "/app/.venv/bin/caudal-mcp"
     env:
       DATABASE_URL: "postgresql+psycopg://finance:finance@<host>:5432/finance"
     tools:
@@ -143,7 +141,7 @@ mcp_servers:
          list_categories, get_projections, get_digest, check_alerts]
 ```
 
-Then set up Hermes cron for proactive delivery: *"Every Monday at 9am, call the finance get_digest tool and post the result to Telegram."*
+Then set up Hermes cron for proactive delivery: *"Every Monday at 9am, call the caudal get_digest tool and post the result to Telegram."*
 
 ## Optional: local Hermes chat (`--profile hermes-dev`)
 
@@ -163,12 +161,12 @@ Verified end-to-end: a chat message correctly triggers `record_transaction`, the
 
 **Core platform: complete.** Bootstrap, data model, core layer, MCP tools + elicitation, internal UI (redesigned: shadcn-style design system, SVG charts, mobile nav), automatic USD→COP conversion at the daily TRM, proactive scheduler, observability, CI, containerization, Hermes dev integration.
 
-**In progress — [`planning/`](planning/):**
+Where it's going next, in plain terms: registering receipts and invoices without typing them in by hand, keeping track of what clients owe and chasing that down automatically, and getting flagged the moment a spend spike or an unexpected charge shows up — before it's just a number buried in next month's report. Full detail per phase in [`planning/`](planning/):
 
 | Phase | Scope | Status |
 |---|---|---|
 | [01 — Revenue](planning/01-revenue.md) | Clients, plans, subscriptions, invoices/AR (cartera), payroll category, real MRR | In progress |
-| [02 — AI & automation](planning/02-ai-automation.md) | Narrated digest, email invoice ingest with review queue, alert explanations, assisted recurring registration | Planned |
+| [02 — AI & automation](planning/02-ai-automation.md) | Auto-registering invoices from email (with a review queue, never blind), narrated digests, client payment/collections automation, spend-spike and unexpected-charge alerts | Planned |
 | [03 — Remote access](planning/03-remote-access.md) | Web UI auth, MCP over streamable HTTP, channel roles (Hermes = capture, Claude = analysis) | Planned |
 
 ## License
