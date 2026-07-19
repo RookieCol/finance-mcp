@@ -1,5 +1,5 @@
 [project]
-name = "finance-mcp"
+name = "caudal"
 version = "0.1.0"
 description = "MCP server + internal UI for a SaaS's income/expense tracking, projections, and proactive alerting."
 readme = "README.md"
@@ -28,9 +28,9 @@ dependencies = [
 ]
 
 [project.scripts]
-finance-mcp = "finance_mcp.mcp_server.server:main"
-finance-web = "finance_mcp.web.app:main"
-finance-scheduler = "finance_mcp.scheduler.runner:main"
+caudal-mcp = "caudal.mcp_server.server:main"
+caudal-web = "caudal.web.app:main"
+caudal-scheduler = "caudal.scheduler.runner:main"
 
 [build-system]
 requires = ["uv_build>=0.11.19,<0.12.0"]
@@ -61,7 +61,7 @@ select = ["E", "F", "I", "UP", "B", "SIM", "C4"]
 [tool.ruff.lint.per-file-ignores]
 # FastAPI's `Depends(...)` as a parameter default is the documented,
 # idiomatic pattern (not the mutable-default-argument bug B008 targets).
-"src/finance_mcp/web/routes.py" = ["B008"]
+"src/caudal/web/routes.py" = ["B008"]
 
 [tool.mypy]
 python_version = "3.12"
@@ -74,7 +74,7 @@ module = "apscheduler.*"
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
-module = "finance_mcp.core.*"
+module = "caudal.core.*"
 disallow_untyped_defs = true
 disallow_any_generics = true
 strict = true
@@ -87,11 +87,11 @@ markers = [
 ]
 
 [tool.coverage.run]
-source = ["finance_mcp"]
+source = ["caudal"]
 # The scheduler's blocking main() loop is process-lifetime code exercised
 # by running the process, not a unit/integration test — everything it
 # calls (jobs.py, notifier.py) is covered directly instead.
-omit = ["src/finance_mcp/scheduler/runner.py"]
+omit = ["src/caudal/scheduler/runner.py"]
 
 [tool.coverage.report]
 fail_under = 85

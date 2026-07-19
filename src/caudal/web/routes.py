@@ -15,12 +15,12 @@ from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
-from finance_mcp.config import get_settings
-from finance_mcp.core import alerts, fx, projections, reporting, repository
-from finance_mcp.core.models import AuditActor, CategoryType, TransactionType
-from finance_mcp.core.validation import TransactionInput, ValidationIssue, validate_transaction
-from finance_mcp.web import charts
-from finance_mcp.web.deps import get_db
+from caudal.config import get_settings
+from caudal.core import alerts, fx, projections, reporting, repository
+from caudal.core.models import AuditActor, CategoryType, TransactionType
+from caudal.core.validation import TransactionInput, ValidationIssue, validate_transaction
+from caudal.web import charts
+from caudal.web.deps import get_db
 
 router = APIRouter()
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))

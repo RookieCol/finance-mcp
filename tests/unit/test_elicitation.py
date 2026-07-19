@@ -8,8 +8,8 @@ import pytest
 from mcp.server.elicitation import AcceptedElicitation, CancelledElicitation, DeclinedElicitation
 from pydantic import create_model
 
-from finance_mcp.core.validation import TransactionInput, ValidationIssue
-from finance_mcp.mcp_server.server import _try_elicit_missing_fields
+from caudal.core.validation import TransactionInput, ValidationIssue
+from caudal.mcp_server.server import _try_elicit_missing_fields
 
 
 class _StubContext:

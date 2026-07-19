@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 from datetime import date
 from decimal import Decimal, InvalidOperation
 
-from finance_mcp.core.models import TransactionType
+from caudal.core.models import TransactionType
 
 VALID_EXPENSE_CATEGORIES = {"cogs", "sales", "marketing", "rd", "ga"}
 VALID_INCOME_CATEGORIES = {"subscription", "services", "other"}

@@ -21,16 +21,16 @@
 #
 # Uses the official prebuilt image (nousresearch/hermes-agent) rather than
 # building Hermes from source. This repo's source is bind-mounted in so
-# Hermes can launch `finance-mcp` via `uv` against it (see
-# docker/hermes/config.yaml's mcp_servers.finance.command).
+# Hermes can launch `caudal` via `uv` against it (see
+# docker/hermes/config.yaml's mcp_servers.caudal.command).
 services:
-  # One-shot: pre-builds the finance-mcp server's own venv (uv sync) into
+  # One-shot: pre-builds the caudal server's own venv (uv sync) into
   # a named volume before Hermes ever tries to spawn it. Without this,
   # every `docker compose run --rm hermes` starts a brand-new container,
-  # so `uv run finance-mcp` would rebuild its venv from scratch (~100+
+  # so `uv run caudal` would rebuild its venv from scratch (~100+
   # packages) on every single chat session — which takes longer than
-  # Hermes' MCP server connection timeout, so the finance tools silently
-  # never load ("MCP server 'finance' initial connection failed", no
+  # Hermes' MCP server connection timeout, so the caudal tools silently
+  # never load ("MCP server 'caudal' initial connection failed", no
   # error surfaced to the user, the model just falls back to its generic
   # `memory` tool instead). Two things must persist across ephemeral
   # containers, not just one: the venv itself (UV_PROJECT_ENVIRONMENT)
@@ -38,19 +38,19 @@ services:
   # — without the latter, uv finds the venv but its python symlink points
   # at a binary that no longer exists in the new container's filesystem,
   # and rebuilds everything anyway. Both live under the same
-  # hermes_finance_venv volume mount. No-op on re-run once already synced.
+  # hermes_caudal_venv volume mount. No-op on re-run once already synced.
   hermes-mcp-warm:
     image: nousresearch/hermes-agent:latest
     profiles: ["hermes-dev"]
     entrypoint: ["sh", "-c"]
     command:
-      - "uv --directory /workspace/finance-mcp sync --no-dev"
+      - "uv --directory /workspace/caudal sync --no-dev"
     environment:
-      UV_PROJECT_ENVIRONMENT: "/opt/finance-mcp-venv/venv"
-      UV_PYTHON_INSTALL_DIR: "/opt/finance-mcp-venv/python"
+      UV_PROJECT_ENVIRONMENT: "/opt/caudal-venv/venv"
+      UV_PYTHON_INSTALL_DIR: "/opt/caudal-venv/python"
     volumes:
-      - .:/workspace/finance-mcp:ro
-      - hermes_finance_venv:/opt/finance-mcp-venv
+      - .:/workspace/caudal:ro
+      - hermes_caudal_venv:/opt/caudal-venv
 
   hermes:
     image: nousresearch/hermes-agent:latest
@@ -64,8 +64,8 @@ services:
         condition: service_completed_successfully
     volumes:
       - ./docker/hermes/data:/opt/data
-      - .:/workspace/finance-mcp:ro
-      - hermes_finance_venv:/opt/finance-mcp-venv
+      - .:/workspace/caudal:ro
+      - hermes_caudal_venv:/opt/caudal-venv
     environment:
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:?set OPENROUTER_API_KEY in .env — see .env.example}
       FINANCE_DATABASE_URL: postgresql+psycopg://finance:finance@postgres:5432/finance
@@ -73,4 +73,4 @@ services:
     tty: true
 
 volumes:
-  hermes_finance_venv:
+  hermes_caudal_venv:

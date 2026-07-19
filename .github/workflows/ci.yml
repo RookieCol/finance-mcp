@@ -54,13 +54,13 @@ jobs:
         run: uv run ruff format --check .
 
       - name: Type-check (mypy)
-        run: uv run mypy src/finance_mcp
+        run: uv run mypy src/caudal
 
       - name: Security — SAST (bandit)
-        run: uv run bandit -c pyproject.toml -r src/finance_mcp
+        run: uv run bandit -c pyproject.toml -r src/caudal
 
       - name: Security — dependency audit (pip-audit)
         run: uv run pip-audit
 
       - name: Tests (with coverage gate)
-        run: uv run pytest --cov=finance_mcp --cov-report=term-missing
+        run: uv run pytest --cov=caudal --cov-report=term-missing

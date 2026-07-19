@@ -1,6 +1,6 @@
 """Idempotently seeds/patches docker/hermes/data/config.yaml — the file
 Hermes Agent actually reads from its bind-mounted /opt/data — with the
-providers/model (OpenRouter), mcp_servers (finance-mcp), and
+providers/model (OpenRouter), mcp_servers (caudal), and
 agent.reasoning_effort overrides from docker/hermes/config.yaml.
 
 Why this exists: Hermes generates its own full default config.yaml on

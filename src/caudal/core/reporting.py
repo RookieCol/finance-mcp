@@ -12,7 +12,7 @@ from typing import Any
 from sqlalchemy import BigInteger, Select, case, func, select
 from sqlalchemy.orm import Session
 
-from finance_mcp.core.models import Transaction, TransactionType
+from caudal.core.models import Transaction, TransactionType
 
 
 @dataclass(frozen=True)

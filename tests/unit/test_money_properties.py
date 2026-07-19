@@ -11,8 +11,8 @@ from decimal import Decimal
 from hypothesis import given
 from hypothesis import strategies as st
 
-from finance_mcp.core.projections import growth_rate, moving_average, runway_months
-from finance_mcp.core.validation import TransactionInput, validate_transaction
+from caudal.core.projections import growth_rate, moving_average, runway_months
+from caudal.core.validation import TransactionInput, validate_transaction
 
 # Two decimal places, always positive, capped well under overflow ranges.
 money_strings = st.decimals(

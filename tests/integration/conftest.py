@@ -51,7 +51,7 @@ def mcp_env(database_url: str) -> Generator[str, None, None]:
     same global the running server would) and truncates mutable tables
     before each test for isolation, since MCP tool calls auto-commit.
     """
-    from finance_mcp.core import db as db_module
+    from caudal.core import db as db_module
 
     db_module.init_engine(database_url)
     engine = sa.create_engine(database_url)

@@ -7,7 +7,7 @@ fix below).
 
 import pytest
 
-from finance_mcp.mcp_server.server import mcp
+from caudal.mcp_server.server import mcp
 
 from .conftest import requires_docker
 

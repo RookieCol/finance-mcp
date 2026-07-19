@@ -1,0 +1,1 @@
+"""Caudal: MCP server + internal UI for SaaS income/expense tracking."""

@@ -1,4 +1,4 @@
-from finance_mcp.core.projections import (
+from caudal.core.projections import (
     forecast_monthly_net,
     growth_rate,
     linear_trend_slope,

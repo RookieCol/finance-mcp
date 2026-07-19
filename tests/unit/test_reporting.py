@@ -1,4 +1,4 @@
-from finance_mcp.core.reporting import MonthTotal, month_over_month_delta
+from caudal.core.reporting import MonthTotal, month_over_month_delta
 
 
 def test_month_over_month_delta_hand_computed() -> None:

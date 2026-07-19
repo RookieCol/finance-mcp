@@ -11,7 +11,7 @@ from html import escape
 
 from markupsafe import Markup
 
-from finance_mcp.core import reporting
+from caudal.core import reporting
 
 
 @dataclass(frozen=True)

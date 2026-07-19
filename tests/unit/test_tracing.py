@@ -1,4 +1,4 @@
-from finance_mcp.core.tracing import _parse_headers
+from caudal.core.tracing import _parse_headers
 
 
 def test_parse_headers_empty_when_none() -> None:

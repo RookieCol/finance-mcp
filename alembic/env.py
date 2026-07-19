@@ -3,8 +3,8 @@ from logging.config import fileConfig
 from sqlalchemy import engine_from_config, pool
 
 from alembic import context
-from finance_mcp.config import get_settings
-from finance_mcp.core.models import Base
+from caudal.config import get_settings
+from caudal.core.models import Base
 
 config = context.config
 

@@ -7,9 +7,9 @@ from datetime import date
 
 from sqlalchemy.orm import Session
 
-from finance_mcp.core import alerts, projections, reporting
-from finance_mcp.core.logging import get_logger
-from finance_mcp.scheduler.notifier import Notifier
+from caudal.core import alerts, projections, reporting
+from caudal.core.logging import get_logger
+from caudal.scheduler.notifier import Notifier
 
 logger = get_logger(__name__)
 

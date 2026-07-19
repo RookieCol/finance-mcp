@@ -17,8 +17,8 @@ from decimal import ROUND_HALF_UP, Decimal
 
 import httpx
 
-from finance_mcp.core.logging import get_logger
-from finance_mcp.core.validation import ValidTransaction
+from caudal.core.logging import get_logger
+from caudal.core.validation import ValidTransaction
 
 logger = get_logger(__name__)
 

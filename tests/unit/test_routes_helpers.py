@@ -1,7 +1,7 @@
 from types import SimpleNamespace
 
-from finance_mcp.core.reporting import CategoryTotal
-from finance_mcp.web.routes import (
+from caudal.core.reporting import CategoryTotal
+from caudal.web.routes import (
     _category_breakdown_rows,
     _fmt_money,
     _infer_vendor,

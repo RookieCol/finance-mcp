@@ -12,8 +12,8 @@ from datetime import date
 
 from sqlalchemy.orm import Session
 
-from finance_mcp.core import reporting
-from finance_mcp.core.models import TransactionType
+from caudal.core import reporting
+from caudal.core.models import TransactionType
 
 DEFAULT_TREND_WINDOW_MONTHS = 3
 

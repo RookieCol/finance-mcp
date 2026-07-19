@@ -1,4 +1,4 @@
-from finance_mcp.core.alerts import (
+from caudal.core.alerts import (
     BUDGET_CRITICAL_THRESHOLD,
     BUDGET_WARNING_THRESHOLD,
     budget_overrun_findings,
@@ -6,8 +6,8 @@ from finance_mcp.core.alerts import (
     runway_threshold_finding,
     spend_spike_findings,
 )
-from finance_mcp.core.models import AlertSeverity
-from finance_mcp.core.reporting import CategoryTotal
+from caudal.core.models import AlertSeverity
+from caudal.core.reporting import CategoryTotal
 
 
 def test_budget_overrun_fires_warning_at_80_percent() -> None:

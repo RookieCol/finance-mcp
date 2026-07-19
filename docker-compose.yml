@@ -45,7 +45,7 @@ services:
 
   scheduler:
     build: .
-    command: ["finance-scheduler"]
+    command: ["caudal-scheduler"]
     environment:
       DATABASE_URL: postgresql+psycopg://finance:finance@postgres:5432/finance
       LOG_LEVEL: INFO

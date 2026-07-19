@@ -8,11 +8,11 @@ importable and correctly wired.
 
 from fastapi import FastAPI
 
-from finance_mcp.web.app import app
+from caudal.web.app import app
 
 
 def test_package_imports() -> None:
-    import finance_mcp  # noqa: F401
+    import caudal  # noqa: F401
 
 
 def test_web_app_is_a_fastapi_app() -> None:

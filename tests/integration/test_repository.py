@@ -2,9 +2,9 @@ from datetime import date
 
 from sqlalchemy.orm import Session
 
-from finance_mcp.core import repository
-from finance_mcp.core.models import AuditAction, AuditActor, TransactionType
-from finance_mcp.core.validation import ValidTransaction
+from caudal.core import repository
+from caudal.core.models import AuditAction, AuditActor, TransactionType
+from caudal.core.validation import ValidTransaction
 
 from .conftest import requires_docker
 

@@ -24,4 +24,4 @@ ENV PATH="/app/.venv/bin:$PATH" PYTHONUNBUFFERED=1
 USER finance
 
 EXPOSE 8000
-CMD ["uvicorn", "finance_mcp.web.app:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "caudal.web.app:app", "--host", "0.0.0.0", "--port", "8000"]

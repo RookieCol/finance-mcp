@@ -9,12 +9,12 @@ configured notifier (webhook, or logs if none configured).
 from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.cron import CronTrigger
 
-from finance_mcp.config import get_settings
-from finance_mcp.core import db
-from finance_mcp.core.logging import configure_logging, get_logger
-from finance_mcp.core.tracing import configure_tracing
-from finance_mcp.scheduler.jobs import run_alert_check, run_weekly_digest
-from finance_mcp.scheduler.notifier import Notifier, build_notifier
+from caudal.config import get_settings
+from caudal.core import db
+from caudal.core.logging import configure_logging, get_logger
+from caudal.core.tracing import configure_tracing
+from caudal.scheduler.jobs import run_alert_check, run_weekly_digest
+from caudal.scheduler.notifier import Notifier, build_notifier
 
 logger = get_logger(__name__)
 

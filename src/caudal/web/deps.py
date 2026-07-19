@@ -7,7 +7,7 @@ from collections.abc import Iterator
 
 from sqlalchemy.orm import Session
 
-from finance_mcp.core import db
+from caudal.core import db
 
 
 def get_db() -> Iterator[Session]:

@@ -17,7 +17,7 @@ from datetime import date, datetime
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from finance_mcp.core.models import (
+from caudal.core.models import (
     AlertEvent,
     AlertSeverity,
     AuditAction,
@@ -29,7 +29,7 @@ from finance_mcp.core.models import (
     Transaction,
     TransactionType,
 )
-from finance_mcp.core.validation import ValidTransaction
+from caudal.core.validation import ValidTransaction
 
 
 def create_transaction(

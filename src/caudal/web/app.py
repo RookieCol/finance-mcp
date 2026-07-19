@@ -13,11 +13,11 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from prometheus_client import make_asgi_app
 
-from finance_mcp.config import get_settings
-from finance_mcp.core import db
-from finance_mcp.core.logging import configure_logging
-from finance_mcp.core.tracing import configure_tracing
-from finance_mcp.web.routes import router
+from caudal.config import get_settings
+from caudal.core import db
+from caudal.core.logging import configure_logging
+from caudal.core.tracing import configure_tracing
+from caudal.web.routes import router
 
 
 @asynccontextmanager
@@ -29,7 +29,7 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     yield
 
 
-app = FastAPI(title="finance-mcp — internal UI", lifespan=lifespan)
+app = FastAPI(title="Caudal — internal UI", lifespan=lifespan)
 app.include_router(router)
 app.mount(
     "/static", StaticFiles(directory=str(Path(__file__).parent / "static")), name="static"
@@ -53,7 +53,7 @@ def healthz() -> dict[str, str]:
 def main() -> None:
     settings = get_settings()
     uvicorn.run(
-        "finance_mcp.web.app:app", host=settings.ui_host, port=settings.ui_port, reload=False
+        "caudal.web.app:app", host=settings.ui_host, port=settings.ui_port, reload=False
     )
 
 

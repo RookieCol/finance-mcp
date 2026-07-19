@@ -4,9 +4,9 @@ from decimal import Decimal
 import httpx
 import pytest
 
-from finance_mcp.core import fx
-from finance_mcp.core.models import TransactionType
-from finance_mcp.core.validation import ValidTransaction
+from caudal.core import fx
+from caudal.core.models import TransactionType
+from caudal.core.validation import ValidTransaction
 
 
 def test_convert_usd_to_cop_rounds_to_nearest_cent() -> None:

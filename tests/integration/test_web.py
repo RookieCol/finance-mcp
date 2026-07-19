@@ -16,7 +16,7 @@ pytestmark = [requires_docker, pytest.mark.usefixtures("web_env")]
 
 @pytest.fixture
 def client() -> TestClient:
-    from finance_mcp.web.app import app
+    from caudal.web.app import app
 
     with TestClient(app) as c:
         yield c
@@ -171,7 +171,7 @@ def test_alerts_page_renders_and_acknowledge_flow(client: TestClient) -> None:
         follow_redirects=False,
     )
 
-    from finance_mcp.core import alerts, db
+    from caudal.core import alerts, db
 
     with db.session_scope() as session:
         alerts.evaluate_alerts(session)
@@ -193,7 +193,7 @@ def test_shared_storage_transaction_created_via_mcp_visible_in_ui(client: TestCl
     """
     import asyncio
 
-    from finance_mcp.mcp_server.server import mcp
+    from caudal.mcp_server.server import mcp
 
     # No extra setup needed: the FastAPI app's lifespan already called
     # db.init_engine() with the same DATABASE_URL this fixture set, so
@@ -385,7 +385,7 @@ def test_alert_payload_is_human_readable(client: TestClient) -> None:
         follow_redirects=False,
     )
 
-    from finance_mcp.core import alerts, db
+    from caudal.core import alerts, db
 
     with db.session_scope() as session:
         alerts.evaluate_alerts(session)

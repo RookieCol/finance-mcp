@@ -1,7 +1,7 @@
 import httpx
 import pytest
 
-from finance_mcp.scheduler.notifier import LogNotifier, WebhookNotifier, build_notifier
+from caudal.scheduler.notifier import LogNotifier, WebhookNotifier, build_notifier
 
 
 def test_build_notifier_returns_log_notifier_without_a_url() -> None:

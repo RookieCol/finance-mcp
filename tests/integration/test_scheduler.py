@@ -2,10 +2,10 @@ from datetime import date
 
 from sqlalchemy.orm import Session
 
-from finance_mcp.core import repository
-from finance_mcp.core.models import AuditActor, Budget, TransactionType
-from finance_mcp.core.validation import ValidTransaction
-from finance_mcp.scheduler.jobs import run_alert_check, run_weekly_digest
+from caudal.core import repository
+from caudal.core.models import AuditActor, Budget, TransactionType
+from caudal.core.validation import ValidTransaction
+from caudal.scheduler.jobs import run_alert_check, run_weekly_digest
 
 from .conftest import requires_docker
 

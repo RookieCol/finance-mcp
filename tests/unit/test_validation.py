@@ -1,5 +1,5 @@
-from finance_mcp.core.models import TransactionType
-from finance_mcp.core.validation import TransactionInput, validate_transaction
+from caudal.core.models import TransactionType
+from caudal.core.validation import TransactionInput, validate_transaction
 
 
 def test_valid_expense_produces_no_issues() -> None:

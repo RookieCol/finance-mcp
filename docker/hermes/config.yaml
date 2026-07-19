@@ -1,6 +1,6 @@
 # Minimal Hermes config for the hermes-dev compose profile.
 #
-# Registers finance-mcp as a local MCP server. Model backend: OpenRouter,
+# Registers caudal as a local MCP server. Model backend: OpenRouter,
 # direct — Hermes' own named-provider config (`providers:` below, schema
 # confirmed against Hermes' own cli-config.yaml.example: base_url +
 # key_env) is all the "pick a model/provider" flexibility needed here, no
@@ -38,22 +38,22 @@ agent:
   reasoning_effort: "none"
 
 mcp_servers:
-  finance:
+  caudal:
     command: "uv"
     args:
       - "--directory"
-      - "/workspace/finance-mcp"
+      - "/workspace/caudal"
       - "run"
       - "--no-dev"        # skip ruff/mypy/hypothesis/etc — MCP runtime doesn't need them
-      - "finance-mcp"
+      - "caudal-mcp"
     env:
       DATABASE_URL: "${FINANCE_DATABASE_URL}"
-      # /workspace/finance-mcp is bind-mounted read-only (see
+      # /workspace/caudal is bind-mounted read-only (see
       # docker-compose.hermes-dev.yml) and its .venv/ is the *host's* own
       # (macOS) virtualenv, whose interpreter symlink is invalid inside
       # this Linux container. Without these, `uv run` tries to repair that
-      # venv in place and fails ("Read-only file system") before finance-
-      # mcp ever starts — Hermes then reports the MCP server as failed to
+      # venv in place and fails ("Read-only file system") before caudal
+      # ever starts — Hermes then reports the MCP server as failed to
       # connect, with no tools available, regardless of model/config.
       # Both paths must match the volume mounts in docker-compose.hermes-
       # dev.yml's `hermes` and `hermes-mcp-warm` services exactly — venv
@@ -62,8 +62,8 @@ mcp_servers:
       # finds a venv whose python symlink points nowhere and rebuilds
       # everything from scratch anyway (slower than Hermes' MCP connect
       # timeout, every single time).
-      UV_PROJECT_ENVIRONMENT: "/opt/finance-mcp-venv/venv"
-      UV_PYTHON_INSTALL_DIR: "/opt/finance-mcp-venv/python"
+      UV_PROJECT_ENVIRONMENT: "/opt/caudal-venv/venv"
+      UV_PYTHON_INSTALL_DIR: "/opt/caudal-venv/python"
     tools:
       include:
         - record_transaction

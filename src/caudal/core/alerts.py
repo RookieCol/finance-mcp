@@ -14,10 +14,10 @@ from datetime import date
 
 from sqlalchemy.orm import Session
 
-from finance_mcp.core import projections, reporting
-from finance_mcp.core.models import AlertSeverity, TransactionType
-from finance_mcp.core.reporting import CategoryTotal
-from finance_mcp.core.repository import (
+from caudal.core import projections, reporting
+from caudal.core.models import AlertSeverity, TransactionType
+from caudal.core.reporting import CategoryTotal
+from caudal.core.repository import (
     create_alert_event,
     delete_alert_event,
     get_open_alert,

@@ -3,13 +3,13 @@
 COMPOSE        = docker compose
 COMPOSE_HERMES = docker compose -f docker-compose.yml -f docker-compose.hermes-dev.yml
 
-FINANCE_TOOLS = finance:record_transaction finance:update_transaction finance:list_transactions \
-                finance:get_totals finance:list_categories finance:get_projections \
-                finance:get_digest finance:check_alerts
+CAUDAL_TOOLS = caudal:record_transaction caudal:update_transaction caudal:list_transactions \
+                caudal:get_totals caudal:list_categories caudal:get_projections \
+                caudal:get_digest caudal:check_alerts
 
 .PHONY: help
 help: ## Show this help
-	@echo "finance-mcp — available targets:"
+	@echo "caudal — available targets:"
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-16s\033[0m %s\n", $$1, $$2}'
 
 .env: ## Create .env from .env.example if it doesn't exist yet
@@ -21,11 +21,11 @@ up: .env ## Start the core app (web + postgres + scheduler + backup) — http://
 	$(COMPOSE) up -d --build
 
 .PHONY: hermes-warm
-hermes-warm: .env ## Pre-build finance-mcp's venv in a persistent volume (required before `make chat` works)
+hermes-warm: .env ## Pre-build caudal's venv in a persistent volume (required before `make chat` works)
 	$(COMPOSE_HERMES) --profile hermes-dev run --rm hermes-mcp-warm
 
 .PHONY: all
-all: up hermes-warm ## Start the core app + pre-build the finance-mcp venv for Hermes
+all: up hermes-warm ## Start the core app + pre-build the caudal venv for Hermes
 	@echo ""
 	@echo "Up: app http://localhost:8000"
 	@echo "Set OPENROUTER_API_KEY in .env, then run 'make chat' to open an interactive"
@@ -34,10 +34,10 @@ all: up hermes-warm ## Start the core app + pre-build the finance-mcp venv for H
 	@echo "First time ever on a fresh docker/hermes/data volume: Hermes writes its own"
 	@echo "default config.yaml on that very first launch, so 'make chat' won't have our"
 	@echo "overrides applied yet — exit (/exit) and run 'make chat' again; every run"
-	@echo "after that patches the config and enables the finance tools automatically."
+	@echo "after that patches the config and enables the caudal tools automatically."
 
 .PHONY: hermes-config
-hermes-config: ## Patch docker/hermes/data/config.yaml and enable the finance MCP tools
+hermes-config: ## Patch docker/hermes/data/config.yaml and enable the caudal MCP tools
 	@if [ ! -f docker/hermes/data/config.yaml ]; then \
 		echo "No Hermes config yet — run 'make chat' once first (it bootstraps one on"; \
 		echo "startup even if you exit immediately), then run this again."; \
@@ -50,7 +50,7 @@ hermes-config: ## Patch docker/hermes/data/config.yaml and enable the finance MC
 	@# platform, so the model never sees them even though `hermes mcp list`
 	@# shows the server connected. This is idempotent (re-enabling an
 	@# already-enabled tool is a no-op) and safe to run on every `make chat`.
-	$(COMPOSE_HERMES) --profile hermes-dev run --rm --entrypoint hermes hermes tools enable $(FINANCE_TOOLS) --platform cli
+	$(COMPOSE_HERMES) --profile hermes-dev run --rm --entrypoint hermes hermes tools enable $(CAUDAL_TOOLS) --platform cli
 
 .PHONY: chat
 chat: hermes-warm ## Open an interactive Hermes chat session (set OPENROUTER_API_KEY in .env first, or run `make all`)

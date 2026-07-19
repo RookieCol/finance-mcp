@@ -18,7 +18,7 @@ from opentelemetry.sdk.trace.export import (
 )
 from opentelemetry.trace import Span, Tracer
 
-_SERVICE_NAME = "finance-mcp"
+_SERVICE_NAME = "caudal"
 
 
 def configure_tracing(otlp_endpoint: str | None = None, otlp_headers: str | None = None) -> None:

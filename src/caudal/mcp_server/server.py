@@ -20,14 +20,14 @@ from mcp.server.elicitation import AcceptedElicitation
 from mcp.server.fastmcp import Context, FastMCP
 from pydantic import Field, create_model
 
-from finance_mcp.config import get_settings
-from finance_mcp.core import alerts, db, fx, projections, reporting, repository
-from finance_mcp.core.logging import configure_logging, correlation_id, get_logger
-from finance_mcp.core.models import AuditActor, CategoryType, TransactionType
-from finance_mcp.core.tracing import configure_tracing, traced_operation
-from finance_mcp.core.validation import TransactionInput, ValidationIssue, validate_transaction
+from caudal.config import get_settings
+from caudal.core import alerts, db, fx, projections, reporting, repository
+from caudal.core.logging import configure_logging, correlation_id, get_logger
+from caudal.core.models import AuditActor, CategoryType, TransactionType
+from caudal.core.tracing import configure_tracing, traced_operation
+from caudal.core.validation import TransactionInput, ValidationIssue, validate_transaction
 
-mcp = FastMCP(name="finance-mcp")
+mcp = FastMCP(name="caudal")
 logger = get_logger(__name__)
 
 
