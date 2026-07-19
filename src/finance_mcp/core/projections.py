@@ -124,16 +124,19 @@ def compute_projections(
 ) -> ProjectionResult:
     as_of = as_of or date.today()
 
+    # Latest month per category, not an all-time sum — a recurring
+    # stream leaves one payment row per month, so an unconditioned sum
+    # would count Vercel/June + Vercel/July as double the monthly rate.
     recurring_income = sum(
         row.total_minor
-        for row in reporting.totals_by_category(
-            session, type=TransactionType.income, is_recurring=True
+        for row in reporting.latest_recurring_totals_by_category(
+            session, type=TransactionType.income
         )
     )
     recurring_expense = sum(
         row.total_minor
-        for row in reporting.totals_by_category(
-            session, type=TransactionType.expense, is_recurring=True
+        for row in reporting.latest_recurring_totals_by_category(
+            session, type=TransactionType.expense
         )
     )
 

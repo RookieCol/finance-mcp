@@ -183,6 +183,24 @@ def delete_budget(session: Session, budget_id: uuid.UUID) -> bool:
     return True
 
 
+def update_budget(
+    session: Session,
+    budget_id: uuid.UUID,
+    *,
+    monthly_limit_minor: int | None = None,
+    active: bool | None = None,
+) -> Budget | None:
+    row = session.get(Budget, budget_id)
+    if row is None:
+        return None
+    if monthly_limit_minor is not None:
+        row.monthly_limit_minor = monthly_limit_minor
+    if active is not None:
+        row.active = active
+    session.flush()
+    return row
+
+
 def list_alerts(session: Session, *, limit: int = 100) -> Sequence[AlertEvent]:
     return session.scalars(
         select(AlertEvent).order_by(AlertEvent.detected_at.desc()).limit(limit)

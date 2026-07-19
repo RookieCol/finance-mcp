@@ -39,6 +39,76 @@ def test_totals_by_category_sums_correctly(db_session: Session) -> None:
     assert marketing.total_minor == 1500
 
 
+def test_net_totals_by_month_subtracts_expense_from_income(db_session: Session) -> None:
+    repository.create_transaction(
+        db_session,
+        _tx(type=TransactionType.income, amount_minor=10000, category="subscription"),
+        source="ui",
+        actor=AuditActor.ui,
+    )
+    repository.create_transaction(
+        db_session,
+        _tx(type=TransactionType.expense, amount_minor=3000),
+        source="ui",
+        actor=AuditActor.ui,
+    )
+    db_session.flush()
+
+    totals = reporting.net_totals_by_month(db_session)
+    row = next(t for t in totals if t.month == "2026-07")
+    assert row.total_minor == 7000
+
+
+def test_net_totals_by_month_is_negative_for_expense_only_month(db_session: Session) -> None:
+    repository.create_transaction(
+        db_session,
+        _tx(type=TransactionType.expense, amount_minor=4200),
+        source="ui",
+        actor=AuditActor.ui,
+    )
+    db_session.flush()
+
+    totals = reporting.net_totals_by_month(db_session)
+    row = next(t for t in totals if t.month == "2026-07")
+    assert row.total_minor == -4200
+
+
+def test_latest_recurring_totals_use_only_each_categorys_most_recent_month(
+    db_session: Session,
+) -> None:
+    # Same recurring stream paid in two consecutive months (rate changed):
+    # the base must be July's 4000, not June+July summed (7000).
+    repository.create_transaction(
+        db_session,
+        _tx(category="cogs", amount_minor=3000, is_recurring=True, occurred_on=date(2026, 6, 16)),
+        source="ui",
+        actor=AuditActor.ui,
+    )
+    repository.create_transaction(
+        db_session,
+        _tx(category="cogs", amount_minor=4000, is_recurring=True, occurred_on=date(2026, 7, 16)),
+        source="ui",
+        actor=AuditActor.ui,
+    )
+    # A different category whose latest recurring month is June only.
+    repository.create_transaction(
+        db_session,
+        _tx(category="ga", amount_minor=5000, is_recurring=True, occurred_on=date(2026, 6, 30)),
+        source="ui",
+        actor=AuditActor.ui,
+    )
+    db_session.flush()
+
+    totals = reporting.latest_recurring_totals_by_category(
+        db_session, type=TransactionType.expense
+    )
+    by_category = {t.category: t.total_minor for t in totals}
+    assert by_category == {"cogs": 4000, "ga": 5000}
+
+    result = projections.compute_projections(db_session, as_of=date(2026, 7, 19))
+    assert result.assumptions.recurring_expense_minor == 9000
+
+
 def test_budget_overrun_alert_fires_and_dedupes(db_session: Session) -> None:
     db_session.add(Budget(category="marketing", monthly_limit_minor=1000, currency="USD"))
     db_session.flush()
