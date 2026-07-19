@@ -1,10 +1,12 @@
-# finance-mcp
+# Caudal
 
-[![CI](https://github.com/RookieCol/finance-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/RookieCol/finance-mcp/actions/workflows/ci.yml)
+[![CI](https://github.com/RookieCol/caudal/actions/workflows/ci.yml/badge.svg)](https://github.com/RookieCol/caudal/actions/workflows/ci.yml)
 [![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](pyproject.toml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-Internal finance system for a bootstrapped SaaS: an [MCP](https://modelcontextprotocol.io) server that turns a chat conversation into structured income/expense records, plus an internal web UI and a proactive projections/alerting engine.
+**Caudal** (Spanish: both *water flow* and *wealth*) — the finance OS for a bootstrapped SaaS: an [MCP](https://modelcontextprotocol.io) server that turns a chat conversation into structured income/expense records, plus an internal web UI and a proactive projections/alerting engine.
+
+> The Python package keeps its original name (`finance_mcp`) — the repo and product are Caudal.
 
 ## What this is
 
@@ -17,17 +19,6 @@ The primary interaction surface is chat: a message like *"pagué 50 dólares a A
 
 Domain background (SaaS accounting fundamentals, category taxonomy, metric formulas) lives in [`finanzas-saas.md`](../finanzas-saas.md).
 
-![Dashboard — dark](docs/screenshots/dashboard-dark.png)
-
-<details>
-<summary>More screenshots — light mode, reports, mobile</summary>
-
-| Light | Reports | Mobile |
-|---|---|---|
-| ![Dashboard — light](docs/screenshots/dashboard-light.png) | ![Reports](docs/screenshots/reports-dark.png) | ![Mobile](docs/screenshots/mobile-dark.png) |
-
-</details>
-
 **Why MCP, not A2A**: Hermes has no Google A2A support but has first-class MCP client support, and MCP's **elicitation** capability (`elicitation/create`) lets a tool call pause and ask a clarifying question mid-conversation — exactly the "don't guess, ask" behavior this needs.
 
 ## Architecture
@@ -38,7 +29,7 @@ flowchart LR
         H[Hermes Agent<br/>Telegram / Slack / CLI]
     end
 
-    subgraph finance-mcp
+    subgraph Caudal
         M[MCP server<br/>stdio]
         C[core/<br/>validation · repository<br/>projections · alerts]
         S[scheduler<br/>proactive digests & alerts]

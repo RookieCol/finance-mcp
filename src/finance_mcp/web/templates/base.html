@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}Vertex{% endblock %}</title>
+  <title>{% block title %}Caudal{% endblock %}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -12,7 +12,7 @@
 <body>
   {% set path = request.url.path %}
   <header class="appbar">
-    <div class="brand">Vertex<span class="brand-sub">finance</span></div>
+    <div class="brand">Caudal<span class="brand-sub">finance</span></div>
     <nav class="pillnav">
       <a href="/" class="{{ 'active' if path == '/' }}">Dashboard</a>
       <a href="/transactions" class="{{ 'active' if path.startswith('/transactions') }}">Transactions</a>

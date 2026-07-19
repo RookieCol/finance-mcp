@@ -34,6 +34,6 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · versioning: 
 
 Initial platform. MCP server (8 tools, stdio) with elicitation for ambiguous input; shared `core/` domain layer (validation, idempotent audited repository, reporting, deterministic projections, deduplicated alert rules); internal FastAPI/Jinja2 UI; APScheduler-based proactive digests and alerts with webhook delivery; structured logging, OpenTelemetry tracing, Prometheus metrics; CI (lint, types, SAST, dependency audit, secrets scan, tests at an 85% coverage gate against real Postgres via testcontainers); Docker Compose deployment with daily backups and a tested restore path; Hermes dev-chat integration profile.
 
-[Unreleased]: https://github.com/RookieCol/finance-mcp/compare/v0.2.0...HEAD
-[0.2.0]: https://github.com/RookieCol/finance-mcp/compare/v0.1.0...v0.2.0
-[0.1.0]: https://github.com/RookieCol/finance-mcp/releases/tag/v0.1.0
+[Unreleased]: https://github.com/RookieCol/caudal/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/RookieCol/caudal/compare/v0.1.0...v0.2.0
+[0.1.0]: https://github.com/RookieCol/caudal/releases/tag/v0.1.0
