@@ -34,6 +34,11 @@ services:
       CLICKHOUSE_URL: http://clickhouse:8123
       CLICKHOUSE_USER: clickhouse
       CLICKHOUSE_PASSWORD: ${LANGFUSE_CLICKHOUSE_PASSWORD:-clickhouse} # CHANGEME
+      # Required: without this, Langfuse defaults to ReplicatedMergeTree
+      # table engines, which need a Zookeeper ensemble our single-node
+      # ClickHouse doesn't have — migrations fail with "no Zookeeper
+      # configuration" and langfuse-web crash-loops.
+      CLICKHOUSE_CLUSTER_ENABLED: "false"
       LANGFUSE_S3_EVENT_UPLOAD_BUCKET: langfuse
       LANGFUSE_S3_EVENT_UPLOAD_REGION: auto
       LANGFUSE_S3_EVENT_UPLOAD_ACCESS_KEY_ID: minio
