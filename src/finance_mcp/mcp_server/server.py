@@ -21,7 +21,7 @@ from mcp.server.fastmcp import Context, FastMCP
 from pydantic import Field, create_model
 
 from finance_mcp.config import get_settings
-from finance_mcp.core import alerts, db, projections, reporting, repository
+from finance_mcp.core import alerts, db, fx, projections, reporting, repository
 from finance_mcp.core.logging import configure_logging, correlation_id, get_logger
 from finance_mcp.core.models import AuditActor, CategoryType, TransactionType
 from finance_mcp.core.tracing import configure_tracing, traced_operation
@@ -123,15 +123,20 @@ async def record_transaction(
             logger.info("record_transaction.clarification_needed", missing=len(result.issues))
             return _issues_to_payload(result.issues)
 
+        try:
+            tx = fx.convert_to_cop(result.transaction)
+        except fx.FxRateUnavailable as exc:
+            logger.warning("record_transaction.fx_unavailable", error=str(exc))
+            return {"status": "error", "message": str(exc)}
+
         with db.session_scope() as session:
             row = repository.create_transaction(
                 session,
-                result.transaction,
+                tx,
                 source="chat",
                 actor=AuditActor.chat,
                 raw_input=(
-                    f"{result.transaction.type.value} {result.transaction.amount_minor / 100:.2f} "
-                    f"{result.transaction.currency} {result.transaction.description}"
+                    f"{tx.type.value} {tx.amount_minor / 100:.2f} {tx.currency} {tx.description}"
                 ),
                 idempotency_key=idempotency_key,
             )
