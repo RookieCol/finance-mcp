@@ -1,6 +1,6 @@
 # Observability
 
-What this service emits, how to look at it locally, and how the optional Langfuse profile fits in.
+What this service emits, how to look at it locally, and how the optional Langfuse Cloud piece fits in.
 
 ## Structured logging
 
@@ -13,7 +13,7 @@ Locally: logs go to stdout as JSON — `docker compose logs -f web` / `scheduler
 `core/tracing.py` wraps every `core/` operation and MCP tool call in an OpenTelemetry span (`traced_operation(...)`), tagged with the same correlation ID as the logs. Two exporters:
 
 - **Console** (always on): spans print to stdout, visible in `docker compose logs`.
-- **OTLP** (opt-in): set `OTEL_EXPORTER_OTLP_ENDPOINT` (and `OTEL_EXPORTER_OTLP_HEADERS` for auth) to also export to a real collector — this is how the Langfuse profile below receives traces.
+- **OTLP** (opt-in): set `OTEL_EXPORTER_OTLP_ENDPOINT` (and `OTEL_EXPORTER_OTLP_HEADERS` for auth) to also export to a real collector — this is how the Langfuse Cloud piece below receives this service's own traces.
 
 ## Metrics
 
@@ -23,22 +23,21 @@ Locally: logs go to stdout as JSON — `docker compose logs -f web` / `scheduler
 
 `GET /healthz` checks DB connectivity and returns `{"status": "ok"|"error", ...}`. The scheduler doesn't currently expose an HTTP health endpoint (it's not a request-driven process) — its liveness is visible via `docker compose ps` and its structured log lines (`scheduler.starting`, `scheduler.alert_check_run`, `scheduler.digest_run`) on each cron tick.
 
-## Optional: self-hosted Langfuse + LiteLLM
+## Optional: Langfuse Cloud (agent tracing + LLM cost)
 
-```bash
-cp .env.example .env   # fill in LANGFUSE_* / LITELLM_* / OPENROUTER_API_KEY
-docker compose -f docker-compose.yml -f docker-compose.langfuse.yml --profile langfuse up -d
-```
+No local infrastructure — a self-hosted Langfuse stack (ClickHouse, MinIO, Redis, its own Postgres, web, worker) and a LiteLLM proxy were tried during development and dropped: the self-hosted stack competed for memory with everything else on Docker Desktop's default VM size, and OpenRouter turns out to cover the same ground natively, upstream, with less to maintain.
 
-Brings up Langfuse's own stack (web, worker, ClickHouse, MinIO, Redis, a dedicated Postgres — adapted from Langfuse's official `docker-compose.yml`, see comments in `docker-compose.langfuse.yml` for what changed and why) plus a LiteLLM proxy.
+1. **Create a free Langfuse Cloud project** at [cloud.langfuse.com](https://cloud.langfuse.com) and grab its public/secret API keys.
+2. **This service's own traces** (MCP tool executions, `core/` operations): set in `.env`
+   ```bash
+   OTEL_EXPORTER_OTLP_ENDPOINT=https://cloud.langfuse.com/api/public/otel/v1/traces
+   OTEL_EXPORTER_OTLP_HEADERS=Authorization=Basic <base64 of public_key:secret_key>,x-langfuse-ingestion-version=4
+   ```
+   Base64-encode the auth header with:
+   ```bash
+   echo -n "${LANGFUSE_PUBLIC_KEY}:${LANGFUSE_SECRET_KEY}" | base64
+   ```
+3. **Hermes' own LLM calls** (tokens, cost, latency — a separate stream from this service's tool-execution traces): on the OpenRouter dashboard, enable **Usage Accounting** (so OpenRouter returns its own accurate per-call cost) and **Broadcast to Langfuse**, pointing at the same Langfuse Cloud project's keys. No proxy, no code on this side — OpenRouter sends the trace directly.
+4. **Budget control**: set a per-API-key spending cap (with a daily/weekly/monthly reset) on the OpenRouter dashboard under API Keys. Requests are rejected *before* reaching the model provider once the cap is hit — enforced upstream at OpenRouter, not something this repo needs to implement or maintain.
 
-- **Agent-execution traces**: with `OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:3000/api/public/otel/v1/traces` and `OTEL_EXPORTER_OTLP_HEADERS="Authorization=Basic <base64 of public_key:secret_key>,x-langfuse-ingestion-version=4"` set on the `web`/`scheduler`/MCP server processes, every `core/` operation's trace lands in the Langfuse UI (`http://localhost:3000`) — the "what did the agent actually do, and when" view: which MCP tool ran, how long it took, whether it hit the clarification/elicitation path.
-- **LLM cost/budget governance**: point Hermes' LLM provider at the LiteLLM proxy (`http://localhost:4000`, using `LITELLM_MASTER_KEY` as the API key) instead of the provider directly. `docker/litellm/config.yaml` sets a hard monthly budget (`LITELLM_BUDGET_USD_MONTHLY`) at both the model and proxy level, and reports every call to Langfuse as a callback — so token usage and cost per conversation show up in the same Langfuse UI, and a runaway loop hits a budget error at the proxy instead of an unbounded bill.
-
-Base64-encode the auth header with:
-
-```bash
-echo -n "${LANGFUSE_PUBLIC_KEY}:${LANGFUSE_SECRET_KEY}" | base64
-```
-
-This profile is genuinely optional — the service runs fully without it (console tracing + `/metrics` cover local development), and it's disabled by default in `docker compose up` since none of its services declare a bare (profile-less) entry.
+This is genuinely optional — the service runs fully without it (console tracing + `/metrics` cover local development).

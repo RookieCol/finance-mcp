@@ -34,7 +34,7 @@ flowchart LR
     end
 
     PG[(Postgres)]
-    LF[Langfuse<br/>self-hosted, optional]
+    LF[Langfuse Cloud<br/>optional, via OpenRouter Broadcast]
 
     H <--MCP tools--> M
     M --> C
@@ -57,7 +57,7 @@ Both entry points — the MCP tools Hermes calls and the internal UI a human use
 | Database | Postgres, SQLAlchemy, Alembic migrations |
 | Scheduler | APScheduler (fallback path when Hermes cron isn't available) |
 | Logging / tracing / metrics | `structlog` (JSON), OpenTelemetry, `prometheus-client` |
-| Agent observability & cost | [Langfuse](https://langfuse.com) (self-hosted) + LiteLLM proxy for budget governance, optional compose profile |
+| Agent observability & cost | [Langfuse Cloud](https://langfuse.com) via OpenRouter's native Broadcast + per-key spending cap (no local infra) |
 | Lint / types | `ruff`, `mypy` |
 | Security | `bandit`, `pip-audit`, `gitleaks` |
 | Tests | `pytest`, `testcontainers` (real Postgres in CI, no DB mocking), `hypothesis` (property-based tests on money math) |
@@ -86,14 +86,12 @@ docker-compose.yml
 **Makefile (simplest path — everything at once):**
 
 ```bash
-make all     # core app + Langfuse/LiteLLM + Ollama (model pulled) — all in one shot
-make chat    # then: open an interactive Hermes chat session against it all
-make help    # see every target (up / langfuse / ollama / ps / logs / down / down-all / restore-drill)
+make all     # core app + pre-build the finance-mcp venv Hermes needs
+make chat    # then: open an interactive Hermes chat session (set OPENROUTER_API_KEY first)
+make help    # see every target (up / hermes-warm / chat / ps / logs / down / down-all / restore-drill)
 ```
 
-`make all` brings up the core app (http://localhost:8000), the Langfuse UI (http://localhost:3000) + LiteLLM, and pulls the free local `qwen2.5:3b-instruct` model into Ollama — everything except the interactive Hermes chat itself, which `make chat` opens separately (it can't run "in the background" as part of a batch `up`). `make down-all` tears down every profile and deletes all volumes.
-
-> **Docker Desktop memory**: this whole stack (app + Langfuse's 6 services + Ollama) plus anything else you have running shares Docker Desktop's VM memory limit (7.75GB by default on macOS). If a model fails to load with `"llama runner process has terminated"` (an empty error — the process was silently OOM-killed, not a config bug), either stop other unrelated containers (`docker stop $(docker ps --format '{{.Names}}' | grep -v finance-mcp)`) or raise the limit in Docker Desktop → Settings → Resources → Memory.
+`make all` brings up the core app (http://localhost:8000) and pre-builds the finance-mcp venv Hermes will need — everything short of the interactive Hermes chat itself, which `make chat` opens separately (it can't run "in the background" as part of a batch `up`). Set `OPENROUTER_API_KEY` in `.env` first. `make down-all` tears down the app and the `hermes-dev` profile and deletes all volumes.
 
 **Docker Compose directly (equivalent to `make up`, just the core app):**
 
@@ -149,7 +147,7 @@ Money is stored as integer minor units (`amount_minor`, e.g. cents) with an ISO 
 - `alerts.py` — proactive rules (budget overrun, spend spike, runway threshold, missing recurring income), deduplicated via `AlertEvent.dedup_key` so a standing condition doesn't re-fire every run, and cleared once the condition resolves.
 - `logging.py` / `tracing.py` — structured JSON logging with correlation IDs, and OpenTelemetry tracing (console exporter by default, OTLP when configured — Stage 8).
 
-Registering this server with a real Hermes install is documented in "Connecting to Hermes" below; `docker-compose.hermes-dev.yml` (`--profile hermes-dev`) provides a local Hermes instance (with a free local LLM via Ollama by default) for testing the live chat integration without Telegram/Slack.
+Registering this server with a real Hermes install is documented in "Connecting to Hermes" below; `docker-compose.hermes-dev.yml` (`--profile hermes-dev`) provides a local Hermes instance (routed to OpenRouter) for testing the live chat integration without Telegram/Slack.
 
 **MCP tools** (Stage 4, `finance_mcp/mcp_server/server.py`) — 8 tools, stdio transport, each a thin wrapper over `core/`:
 
@@ -233,15 +231,19 @@ Build is executed stage-by-stage, each stage landing as its own commit(s) on `ma
 - [x] Stage 5 — Clarification / elicitation flow
 - [x] Stage 6 — Internal UI
 - [x] Stage 7 — Proactive scheduler
-- [x] Stage 8 — Observability — structured logging, tracing, `/metrics`, plus the optional self-hosted Langfuse + LiteLLM profile (see below).
+- [x] Stage 8 — Observability — structured logging, tracing, `/metrics`; agent-level LLM tracing/cost via OpenRouter's native Broadcast to Langfuse Cloud (see `docs/observability.md`), no local infra required.
 - [x] Stage 9 — Testing & CI
 - [x] Stage 10 — Containerization & run story (incl. backups/restore)
 - [x] Stage 11 — Hermes dev container & integration (`docker-compose.hermes-dev.yml`, see below)
 
-**Optional profiles** (not required for the core `docker compose up` — see `docs/observability.md` for the Langfuse/LiteLLM piece):
+**Optional profile** — `docker-compose.hermes-dev.yml` (`--profile hermes-dev`): a local Hermes Agent instance (official `nousresearch/hermes-agent` image) for testing the live chat → MCP integration without Telegram/Slack, routing directly to OpenRouter (`google/gemini-3.1-flash-lite-preview`: cheap, 1M context — set in `docker/hermes/config.yaml`). Budget cap and LLM cost/tracing are OpenRouter dashboard settings (per-key spending cap; "Broadcast to Langfuse"), not anything self-hosted — see `docs/observability.md`. **Verified fully end-to-end**: `make chat` → *"pagué 50 dólares a AWS ayer en infraestructura, categoría cogs"* → Hermes called `record_transaction` with an invalid category (`"COGS"`), the MCP elicitation flow asked for a correction, Hermes retried with the fixed value, and the transaction landed in Postgres and showed up in the UI.
 
-- **`docker-compose.langfuse.yml`** (`--profile langfuse`) — self-hosted [Langfuse](https://langfuse.com) (agent-execution tracing via this repo's own OTLP export) + a [LiteLLM](https://www.litellm.ai) proxy in front of Hermes' LLM provider for cost/budget governance (hard monthly cap, logged to Langfuse). Adapted from Langfuse's own official `docker-compose.yml` — its `postgres` service is renamed `langfuse-postgres` and moved off port 5432 to avoid colliding with this repo's own Postgres. **Verified end-to-end** via `make all`: all 36 ClickHouse migrations applied and the Langfuse UI served 200 at `:3000`. One real bug was caught and fixed this way — the adaptation had dropped `CLICKHOUSE_CLUSTER_ENABLED`, which defaults Langfuse to `ReplicatedMergeTree` table engines that need a Zookeeper ensemble a single-node ClickHouse doesn't have, crash-looping `langfuse-web`; `config` validation alone (no port/name collisions) hadn't caught it since nothing about the YAML shape was wrong.
-- **`docker-compose.hermes-dev.yml`** (`--profile hermes-dev`) — a local Hermes Agent instance (official `nousresearch/hermes-agent` image) for testing the live chat → MCP integration without Telegram/Slack. Defaults to a **free, fully local LLM** via an `ollama` service running `qwen2.5:3b-instruct` (tool-calling capable, ~1.9GB), tagged as `qwen2.5-3b-64k` (`docker/hermes/Modelfile`: `PARAMETER num_ctx 65536`) since Ollama serves it at a 32K context window by default and Hermes refuses anything under 64K for its tool-calling working memory; an `ollama-pull` one-shot service pulls the base weights and creates the tagged variant. 3B rather than 7B specifically because 7B's weights (~4.5GB) plus its KV cache at 64K context (~3.7GB) don't fit Docker Desktop's default 7.75GB VM alongside the rest of this stack — confirmed by reproducing the crash (`"llama runner process has terminated"`, an empty error from a silent OOM-kill) with 7B even after freeing every other container's memory, while 3B answers real chat completions cleanly in the same environment. An OpenRouter (cloud) alternative — and how to bump back to 7B if you've raised Docker's memory limit — is documented in `docker/hermes/config.yaml` / `docker/hermes/Modelfile`'s comments. Since `docker/hermes/data/` is Hermes' own persistent volume (gitignored) and Hermes writes its own default `config.yaml` there on first launch, `scripts/patch_hermes_config.py` merges in the `model`/`mcp_servers`/`agent.reasoning_effort` overrides on every `make chat` run — three real bugs surfaced this way, each caught by actually driving `make chat` end-to-end rather than by config review alone: (1) the config file was never being read at all (Hermes' own generated default silently took over, `mcp_servers.finance` was never registered); (2) the raised-context model tag was missing, so Hermes rejected the 32K default with "below the minimum 64,000 required"; (3) Hermes' default `reasoning_effort: medium` sends a "thinking" request param that Ollama rejects for a plain instruct model with HTTP 400.
+Three real bugs surfaced by actually driving this end-to-end rather than by config review alone — each is why the setup looks the way it does:
+1. **Config never applied.** Hermes writes its own default `config.yaml` into its bind-mounted `/opt/data` on first launch and never re-reads a repo file — so `docker/hermes/config.yaml` was pure documentation, silently ignored. Fixed by `scripts/patch_hermes_config.py`, which merges the `providers`/`model`/`mcp_servers`/`agent.reasoning_effort` blocks into whatever's already at `docker/hermes/data/config.yaml` (preserving Hermes-managed keys like personalities/max_turns), run automatically by `make chat`.
+2. **The "thinking" param.** Hermes defaults to `agent.reasoning_effort: medium` and sends a "thinking" field regardless of provider/model. `gemini-3.1-flash-lite-preview` isn't a thinking-capable variant, so this is kept disabled (`reasoning_effort: "none"`) as cheap insurance — confirmed necessary the hard way against a different backend during development (Ollama's `/v1` endpoint rejected it outright with HTTP 400 for a non-reasoning model).
+3. **The MCP server "connected" but had zero tools, silently.** `docker/hermes/data/` is bind-mounted read-only, and its `.venv/` is the *host's own* virtualenv (built for macOS) — `uv run finance-mcp` tried to repair the mismatched interpreter and failed (`Read-only file system`). Pointing `UV_PROJECT_ENVIRONMENT` elsewhere fixed that, but each `docker compose run --rm` starts a brand-new ephemeral container, so the venv (and separately, the Python interpreter `uv` installs for it) rebuilt from scratch every single time — slower than Hermes' MCP connection timeout, so `finance` failed to connect on every run with no error surfaced to the user; the model just silently fell back to its generic `memory` tool instead of ours. Also, even once connected, a freshly-registered MCP server's tools default to **not selected** for the `cli` platform (`hermes tools list` shows the server but the model never receives the tool schemas) — a separate, easy-to-miss step from registering `mcp_servers:` in config. Fixed by: a `hermes-mcp-warm` one-shot service that pre-builds the venv *and* Python interpreter into a persistent named volume before Hermes ever spawns the subprocess, plus `make hermes-config` running `hermes tools enable finance:<tool> ... --platform cli` for all 8 tools — both wired into `make chat` automatically.
+
+An earlier iteration of this profile also ran a self-hosted Langfuse stack (ClickHouse, MinIO, Redis, its own Postgres, web, worker) and a LiteLLM proxy in front of the model, for budget/cost governance and a free local LLM via Ollama. Both were dropped after actually running them: the self-hosted Langfuse stack competed for memory with everything else on Docker Desktop's default 7.75GB VM (a 7B Ollama model reliably OOM'd even after freeing every other container), and research showed OpenRouter already provides the same cost/tracing (Broadcast + Usage Accounting) and budget enforcement (per-key spending cap, rejected upstream before reaching the provider) natively — plus Hermes itself already supports named multi-provider config (`providers:` in `config.yaml`), so a proxy wasn't adding orchestration value either. One fewer moving part, no resource contention, no self-maintained infra.
 
 ## License
 

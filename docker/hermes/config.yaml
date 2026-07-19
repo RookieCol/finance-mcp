@@ -1,12 +1,12 @@
 # Minimal Hermes config for the hermes-dev compose profile.
 #
-# Registers finance-mcp as a local MCP server, and defaults to a free,
-# fully local LLM via Ollama (qwen2.5:3b-instruct — tool-calling capable,
-# ~1.9GB, far lighter than the 20GB+ models some local-Hermes guides
-# assume, and sized to fit Docker Desktop's default 7.75GB VM alongside
-# the rest of this compose stack — see docker/hermes/Modelfile for why
-# 3B rather than 7B). Swap the `model:` block for the commented
-# OpenRouter example below if you'd rather use a cloud model.
+# Registers finance-mcp as a local MCP server. Model backend: OpenRouter,
+# direct — Hermes' own named-provider config (`providers:` below, schema
+# confirmed against Hermes' own cli-config.yaml.example: base_url +
+# key_env) is all the "pick a model/provider" flexibility needed here, no
+# proxy required. Budget cap and LLM cost/tracing are OpenRouter dashboard
+# settings (per-key spending cap; "Broadcast to Langfuse" + Usage
+# Accounting for a free Langfuse Cloud project) — see docs/observability.md.
 #
 # This file documents the config Hermes needs; on first run Hermes
 # persists its own copy under the mounted /opt/data, so merge this in
@@ -15,28 +15,27 @@
 # behavior depends on the Hermes version. See README "Connecting to
 # Hermes" for the equivalent `hermes mcp add` CLI form.
 
-model:
-  default: "qwen2.5-3b-64k"   # tagged variant, see docker/hermes/Modelfile
-  provider: "custom"
-  base_url: "http://ollama:11434/v1"
-  api_key: "no-key"           # Ollama doesn't require auth
-  context_length: 65536       # Hermes requires >= 64K; base tag defaults to 32K
+providers:
+  openrouter-finance:
+    base_url: "https://openrouter.ai/api/v1"
+    key_env: "OPENROUTER_API_KEY"
 
-# qwen2.5 is a plain instruct model (no extended-thinking support). Hermes
-# defaults to agent.reasoning_effort: medium and sends a "thinking"
-# request param regardless of provider — Ollama's /v1 endpoint rejects
-# that with HTTP 400 ("does not support thinking") for a non-reasoning
-# model. Only reasoning_effort is overridden here; scripts/patch_hermes_config.py
-# merges it into the existing `agent:` block rather than replacing it, so
-# Hermes-managed keys (personalities, max_turns, ...) are preserved.
+model:
+  default: "google/gemini-3.1-flash-lite-preview"   # cheap, fast, 1,048,576 token context
+  provider: "openrouter-finance"
+  context_length: 1048576
+
+# gemini-3.1-flash-lite-preview isn't a thinking-capable variant, but
+# Hermes defaults to agent.reasoning_effort: medium and sends a "thinking"
+# request param regardless of provider/model — some backends (Ollama's
+# /v1 endpoint, confirmed) reject that outright for non-reasoning models.
+# Kept disabled here as cheap insurance even though OpenRouter itself
+# tolerates the param more gracefully.
+# scripts/patch_hermes_config.py merges this into the existing `agent:`
+# block rather than replacing it, so Hermes-managed keys (personalities,
+# max_turns, ...) are preserved.
 agent:
   reasoning_effort: "none"
-
-# --- OpenRouter alternative (cloud, costs money, better quality) ---
-# model:
-#   default: "anthropic/claude-3.5-sonnet"
-#   provider: "openrouter"
-#   api_key: "${OPENROUTER_API_KEY}"
 
 mcp_servers:
   finance:
@@ -45,9 +44,26 @@ mcp_servers:
       - "--directory"
       - "/workspace/finance-mcp"
       - "run"
+      - "--no-dev"        # skip ruff/mypy/hypothesis/etc — MCP runtime doesn't need them
       - "finance-mcp"
     env:
       DATABASE_URL: "${FINANCE_DATABASE_URL}"
+      # /workspace/finance-mcp is bind-mounted read-only (see
+      # docker-compose.hermes-dev.yml) and its .venv/ is the *host's* own
+      # (macOS) virtualenv, whose interpreter symlink is invalid inside
+      # this Linux container. Without these, `uv run` tries to repair that
+      # venv in place and fails ("Read-only file system") before finance-
+      # mcp ever starts — Hermes then reports the MCP server as failed to
+      # connect, with no tools available, regardless of model/config.
+      # Both paths must match the volume mounts in docker-compose.hermes-
+      # dev.yml's `hermes` and `hermes-mcp-warm` services exactly — venv
+      # *and* the Python interpreter uv installed for it both need to
+      # persist across ephemeral `docker compose run` containers, or uv
+      # finds a venv whose python symlink points nowhere and rebuilds
+      # everything from scratch anyway (slower than Hermes' MCP connect
+      # timeout, every single time).
+      UV_PROJECT_ENVIRONMENT: "/opt/finance-mcp-venv/venv"
+      UV_PYTHON_INSTALL_DIR: "/opt/finance-mcp-venv/python"
     tools:
       include:
         - record_transaction

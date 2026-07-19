@@ -1,8 +1,8 @@
 """OpenTelemetry tracing setup shared by every entry point.
 
 Console exporter by default (visible in local/dev logs); OTLP export
-(e.g. to a self-hosted Langfuse, Stage 8) activates automatically when
-``OTEL_EXPORTER_OTLP_ENDPOINT`` is set.
+(e.g. to Langfuse Cloud, see docs/observability.md) activates
+automatically when ``OTEL_EXPORTER_OTLP_ENDPOINT`` is set.
 """
 
 from collections.abc import Iterator
@@ -31,7 +31,7 @@ def configure_tracing(otlp_endpoint: str | None = None, otlp_headers: str | None
 
     if otlp_endpoint:
         # Imported lazily: the OTLP exporter package is an optional extra
-        # only needed when a real collector (e.g. Langfuse, Stage 8) is
+        # only needed when a real collector (e.g. Langfuse Cloud) is
         # configured — the console exporter above always works standalone.
         from opentelemetry.exporter.otlp.proto.http.trace_exporter import (
             OTLPSpanExporter,

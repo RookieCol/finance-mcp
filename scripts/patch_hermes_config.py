@@ -1,7 +1,7 @@
 """Idempotently seeds/patches docker/hermes/data/config.yaml — the file
 Hermes Agent actually reads from its bind-mounted /opt/data — with the
-model (Ollama), mcp_servers (finance-mcp), and agent.reasoning_effort
-overrides from docker/hermes/config.yaml.
+providers/model (OpenRouter), mcp_servers (finance-mcp), and
+agent.reasoning_effort overrides from docker/hermes/config.yaml.
 
 Why this exists: Hermes generates its own full default config.yaml on
 first launch if none is present yet (~30 top-level keys — personalities,
@@ -26,7 +26,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 SOURCE = REPO_ROOT / "docker" / "hermes" / "config.yaml"
 TARGET = REPO_ROOT / "docker" / "hermes" / "data" / "config.yaml"
 
-REPLACED_KEYS = ("model", "mcp_servers")
+REPLACED_KEYS = ("providers", "model", "mcp_servers")
 MERGED_KEYS = ("agent",)
 
 
@@ -54,7 +54,8 @@ def main() -> None:
         yaml.safe_dump(target_config, f, sort_keys=False, default_flow_style=False)
 
     print(
-        f"Patched {TARGET} with model={source_config['model']['default']!r}, "
+        f"Patched {TARGET} with providers={list(source_config['providers'])!r}, "
+        f"model={source_config['model']['default']!r}, "
         f"mcp_servers={list(source_config['mcp_servers'])!r}, "
         f"agent overrides={source_config.get('agent', {})!r}"
     )
