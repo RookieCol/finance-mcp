@@ -32,9 +32,23 @@ all: up langfuse ollama ## Start EVERYTHING at once: core app + Langfuse/LiteLLM
 	@echo ""
 	@echo "Up: app http://localhost:8000  |  Langfuse http://localhost:3000  |  LiteLLM http://localhost:4000"
 	@echo "Run 'make chat' to open an interactive Hermes session against it all."
+	@echo "First time ever on a fresh docker/hermes/data volume: Hermes writes its own"
+	@echo "default config.yaml on that very first launch, so 'make chat' won't have our"
+	@echo "Ollama/finance-mcp overrides applied yet — exit (/exit) and run 'make chat'"
+	@echo "again; every run after that patches the config automatically."
+
+.PHONY: hermes-config
+hermes-config: ## Patch docker/hermes/data/config.yaml with the Ollama model + finance-mcp server
+	@if [ ! -f docker/hermes/data/config.yaml ]; then \
+		echo "No Hermes config yet — run 'make chat' once first (it bootstraps one on"; \
+		echo "startup even if you exit immediately), then run this again."; \
+		exit 1; \
+	fi
+	uv run python3 scripts/patch_hermes_config.py
 
 .PHONY: chat
 chat: ## Open an interactive Hermes chat session (run `make ollama` first, or `make all`)
+	@if [ -f docker/hermes/data/config.yaml ]; then $(MAKE) hermes-config; fi
 	$(COMPOSE_HERMES) --profile hermes-dev run --rm hermes hermes
 
 .PHONY: ps
