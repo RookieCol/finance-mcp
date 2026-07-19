@@ -83,7 +83,17 @@ docker-compose.yml
 
 ## How to run
 
-**Docker Compose (primary path):**
+**Makefile (simplest path — everything at once):**
+
+```bash
+make all     # core app + Langfuse/LiteLLM + Ollama (model pulled) — all in one shot
+make chat    # then: open an interactive Hermes chat session against it all
+make help    # see every target (up / langfuse / ollama / ps / logs / down / down-all / restore-drill)
+```
+
+`make all` brings up the core app (http://localhost:8000), the Langfuse UI (http://localhost:3000) + LiteLLM, and pulls the free local `qwen2.5:7b-instruct` model into Ollama — everything except the interactive Hermes chat itself, which `make chat` opens separately (it can't run "in the background" as part of a batch `up`). `make down-all` tears down every profile and deletes all volumes.
+
+**Docker Compose directly (equivalent to `make up`, just the core app):**
 
 ```bash
 cp .env.example .env   # optional: set NOTIFIER_WEBHOOK_URL for real alert/digest delivery
