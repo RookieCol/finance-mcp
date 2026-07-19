@@ -1,78 +1,93 @@
 {% extends "base.html" %}
-{% block title %}Dashboard — finance-mcp{% endblock %}
+{% from "_macros.html" import empty_state, category_breakdown %}
+{% block title %}Dashboard — Vertex{% endblock %}
 {% block content %}
 <h1>Dashboard</h1>
 
-<div class="card">
-  <h3>This month by category</h3>
-  {% if category_totals %}
-  <table>
-    <tr><th>Category</th><th>Amount</th></tr>
-    {% for row in category_totals %}
-    <tr><td>{{ row.category }}</td><td>{{ row.currency }} {{ row.amount }}</td></tr>
-    {% endfor %}
-  </table>
-  {% else %}
-  <p class="muted">No transactions recorded yet.</p>
-  {% endif %}
-</div>
-
-<div class="card">
-  <h3>Net cash flow — history + forecast</h3>
-  {% if bars %}
-  {% for bar in bars %}
-  <div class="bar-row">
-    <div class="bar-label">{{ bar.label }}{% if bar.is_forecast %} <span class="muted">(fcst)</span>{% endif %}</div>
-    <div class="bar-track">
-      <div class="bar-fill {{ 'positive' if bar.value >= 0 else 'negative' }}" style="width: {{ bar.width_pct }}%; margin-left: {{ bar.offset_pct }}%;"></div>
+<div class="hero">
+  <div class="hero-top">
+    <div>
+      <div class="hero-label">Net this month</div>
+      <div class="hero-value {{ 'pos' if current_month_net is not none and current_month_net >= 0 else 'neg' if current_month_net is not none }}">
+        {% if current_month_net_display is not none %}{{ current_month_net_display }}{% else %}—{% endif %}
+      </div>
     </div>
-    <div class="bar-value">{{ bar.display }}</div>
+    <div class="hero-chip {{ 'pos' if mrr_growth_rate and mrr_growth_rate >= 0 else 'neg' if mrr_growth_rate }}">
+      MRR {% if mrr_growth_rate is not none %}{{ "%+.1f"|format(mrr_growth_rate * 100) }}%{% else %}n/a{% endif %}
+    </div>
   </div>
+  <div class="runway">
+    <div class="runway-label">
+      <span>Runway</span>
+      <span>{% if runway_months is not none %}{{ "%.1f"|format(runway_months) }} months{% else %}healthy — net positive{% endif %}</span>
+    </div>
+    <div class="runway-meter">
+      {% for seg in runway_segments %}
+      <div class="runway-seg {{ seg }}"></div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+{% if open_alerts %}
+<div class="alert-banner">
+  {% for a in open_alerts %}
+  <span class="badge badge-{{ a.severity }}">{{ a.rule }} &middot; {{ a.severity }}</span>
   {% endfor %}
-  {% else %}
-  <p class="muted">Not enough data yet to chart.</p>
-  {% endif %}
-  <p class="muted">
-    Runway:
-    {% if runway_months is not none %}{{ "%.1f"|format(runway_months) }} months{% else %}n/a (not currently burning cash){% endif %}
-    &middot; MRR growth:
-    {% if mrr_growth_rate is not none %}{{ "%.1f"|format(mrr_growth_rate * 100) }}%{% else %}n/a{% endif %}
-  </p>
+  <a class="link" href="/alerts">View all alerts &rarr;</a>
+</div>
+{% endif %}
+
+<div class="card-grid">
+  <div class="card">
+    <h3>Expenses this month{% if expense_total_display %} &middot; {{ expense_total_currency }} {{ expense_total_display }}{% endif %}</h3>
+    {% if expense_breakdown %}
+    {{ category_breakdown(expense_breakdown) }}
+    {% else %}
+    {{ empty_state("No expenses recorded yet this month.", "/transactions/new", "Record an expense") }}
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <h3>Infra this month</h3>
+    {% if infra_breakdown %}
+    {{ category_breakdown(infra_breakdown) }}
+    {% else %}
+    {{ empty_state("No infrastructure spend this month.") }}
+    {% endif %}
+  </div>
 </div>
 
-<div class="card">
-  <h3>Unacknowledged alerts</h3>
-  {% if open_alerts %}
-  <table>
-    <tr><th>Rule</th><th>Severity</th></tr>
-    {% for a in open_alerts %}
-    <tr><td>{{ a.rule }}</td><td><span class="badge badge-{{ a.severity }}">{{ a.severity }}</span></td></tr>
-    {% endfor %}
-  </table>
-  <p><a href="/alerts">View all alerts &rarr;</a></p>
-  {% else %}
-  <p class="muted">No open alerts.</p>
-  {% endif %}
-</div>
+<div class="card-grid">
+  <div class="card">
+    <h3>Net cash flow — history + forecast</h3>
+    {% if net_chart %}
+    {{ net_chart }}
+    <p class="muted" style="margin-top:0.5rem;">* forecast — see <a class="link" href="/projections">projections</a> for assumptions</p>
+    {% else %}
+    {{ empty_state("Not enough data yet to chart.") }}
+    {% endif %}
+  </div>
 
-<div class="card">
-  <h3>Recent transactions</h3>
-  {% if recent %}
-  <table>
-    <tr><th>Date</th><th>Type</th><th>Category</th><th>Description</th><th>Amount</th></tr>
-    {% for t in recent %}
-    <tr>
-      <td>{{ t.occurred_on }}</td>
-      <td>{{ t.type }}</td>
-      <td>{{ t.category }}</td>
-      <td>{{ t.description }}</td>
-      <td class="amount-{{ t.type }}">{{ t.currency }} {{ t.amount }}</td>
-    </tr>
-    {% endfor %}
-  </table>
-  <p><a href="/transactions">View all transactions &rarr;</a></p>
-  {% else %}
-  <p class="muted">No transactions yet.</p>
-  {% endif %}
+  <div class="card">
+    <h3>Recent transactions</h3>
+    {% if recent %}
+    <div class="receipt-list">
+      {% for t in recent %}
+      <div class="receipt-row">
+        <div class="receipt-icon">{{ t.category[:2] }}</div>
+        <div class="receipt-body">
+          <div class="receipt-desc">{{ t.description }}</div>
+          <div class="receipt-meta">{{ t.occurred_on }} &middot; {{ t.category | category_label }}</div>
+        </div>
+        <div class="receipt-amount amount-{{ t.type }}">{{ t.currency }} {{ t.amount }}</div>
+      </div>
+      {% endfor %}
+    </div>
+    <p style="margin-top:0.75rem;"><a class="link" href="/transactions">View all transactions &rarr;</a></p>
+    {% else %}
+    {{ empty_state("No transactions yet.", "/transactions/new", "Record the first one") }}
+    {% endif %}
+  </div>
 </div>
 {% endblock %}

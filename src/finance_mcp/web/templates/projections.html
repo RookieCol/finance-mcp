@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% from "_macros.html" import stat_tile, empty_state %}
+{% block title %}Projections — Vertex{% endblock %}
+{% block content %}
+<h1>Projections</h1>
+<p class="muted">Deterministic forecast — recurring cash flow plus a trend extrapolated from recent non-recurring activity. No LLM involved.</p>
+
+<div class="stat-grid">
+  {{ stat_tile("Runway", "%.1f"|format(runway_months) if runway_months is not none else "n/a", "mo" if runway_months is not none else "") }}
+  {{ stat_tile("MRR growth", "%+.1f"|format(mrr_growth_rate * 100) if mrr_growth_rate is not none else "n/a", "%" if mrr_growth_rate is not none else "", "pos" if mrr_growth_rate and mrr_growth_rate >= 0 else "neg" if mrr_growth_rate else "") }}
+</div>
+
+<div class="card-grid">
+  <div class="card">
+    <h3>Net cash flow — history + forecast</h3>
+    {% if net_chart %}
+    {{ net_chart }}
+    {% else %}
+    {{ empty_state("Not enough data yet to chart.") }}
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <h3>Forecast by month</h3>
+    {% if forecast_rows %}
+    <table>
+      <tr><th>Month</th><th>Net</th></tr>
+      {% for row in forecast_rows %}
+      <tr>
+        <td>{{ row.month }}</td>
+        <td class="num {{ 'amount-income' if row.value >= 0 else 'amount-expense' }}">{{ row.display }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+    {% else %}
+    {{ empty_state("No forecast available yet.") }}
+    {% endif %}
+  </div>
+</div>
+
+<div class="card">
+  <h3>Assumptions</h3>
+  <div class="assumptions-list">
+    <div class="assumptions-row">
+      <span class="k">Trend window</span>
+      <span class="v">{{ assumptions.trend_window_months }} months</span>
+    </div>
+    <div class="assumptions-row">
+      <span class="k">Historical months used</span>
+      <span class="v">{{ assumptions.historical_months_used | join(', ') if assumptions.historical_months_used else '—' }}</span>
+    </div>
+    <div class="assumptions-row">
+      <span class="k">Recurring income (monthly)</span>
+      <span class="v">{{ assumptions.recurring_income }}</span>
+    </div>
+    <div class="assumptions-row">
+      <span class="k">Recurring expense (monthly)</span>
+      <span class="v">{{ assumptions.recurring_expense }}</span>
+    </div>
+  </div>
+</div>
+{% endblock %}

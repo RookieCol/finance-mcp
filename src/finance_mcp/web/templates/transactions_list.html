@@ -1,22 +1,25 @@
 {% extends "base.html" %}
-{% block title %}Transactions — finance-mcp{% endblock %}
+{% from "_macros.html" import empty_state %}
+{% block title %}Transactions — Vertex{% endblock %}
 {% block content %}
 <h1>Transactions</h1>
 
-<form method="get" action="/transactions" class="form-grid" style="margin-bottom: 1rem;">
-  <label for="type">Type</label>
-  <select name="type" id="type">
-    <option value="" {{ 'selected' if not type }}>All</option>
-    <option value="income" {{ 'selected' if type == 'income' }}>Income</option>
-    <option value="expense" {{ 'selected' if type == 'expense' }}>Expense</option>
-  </select>
-  <label for="category">Category</label>
-  <input type="text" name="category" id="category" value="{{ category or '' }}" placeholder="e.g. cogs">
-  <span></span>
-  <button type="submit">Filter</button>
+<form method="get" action="/transactions" class="filter-form">
+  <div class="field">
+    <label for="type">Type</label>
+    <select name="type" id="type">
+      <option value="" {{ 'selected' if not type }}>All</option>
+      <option value="income" {{ 'selected' if type == 'income' }}>Income</option>
+      <option value="expense" {{ 'selected' if type == 'expense' }}>Expense</option>
+    </select>
+  </div>
+  <div class="field">
+    <label for="category">Category</label>
+    <input type="text" name="category" id="category" value="{{ category or '' }}" placeholder="e.g. cogs">
+  </div>
+  <button type="submit" class="btn-ghost">Filter</button>
+  <a class="btn" href="/transactions/new">+ New transaction</a>
 </form>
-
-<p><a href="/transactions/new">+ New transaction</a></p>
 
 {% if transactions %}
 <table>
@@ -25,23 +28,23 @@
   <tr>
     <td>{{ t.occurred_on }}</td>
     <td>{{ t.type }}</td>
-    <td>{{ t.category }}</td>
+    <td>{{ t.category | category_label }}<span class="breakdown-key">{{ t.category }}</span></td>
     <td>{{ t.description }}</td>
     <td class="amount-{{ t.type }}">{{ t.currency }} {{ t.amount }}</td>
     <td>{{ '✓' if t.is_recurring else '' }}</td>
     <td>
-      <a href="/transactions/{{ t.id }}/edit">edit</a>
-      &middot;
-      <a href="/transactions/{{ t.id }}/history">history</a>
-      &middot;
-      <form class="inline" method="post" action="/transactions/{{ t.id }}/delete" onsubmit="return confirm('Delete this transaction?');">
-        <button type="submit">delete</button>
-      </form>
+      <div class="actions">
+        <a class="link" href="/transactions/{{ t.id }}/edit">edit</a>
+        <a class="link" href="/transactions/{{ t.id }}/history">history</a>
+        <form class="inline" method="post" action="/transactions/{{ t.id }}/delete" onsubmit="return confirm('Delete this transaction?');">
+          <button type="submit" class="btn-danger btn-sm">delete</button>
+        </form>
+      </div>
     </td>
   </tr>
   {% endfor %}
 </table>
 {% else %}
-<p class="muted">No transactions match this filter.</p>
+{{ empty_state("No transactions match this filter.", "/transactions/new", "Record a transaction") }}
 {% endif %}
 {% endblock %}

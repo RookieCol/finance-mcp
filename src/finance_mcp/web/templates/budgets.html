@@ -1,5 +1,6 @@
 {% extends "base.html" %}
-{% block title %}Budgets — finance-mcp{% endblock %}
+{% from "_macros.html" import empty_state %}
+{% block title %}Budgets — Vertex{% endblock %}
 {% block content %}
 <h1>Budgets</h1>
 <p class="muted">Monthly limits per expense category — what the proactive budget-overrun alert checks against.</p>
@@ -9,30 +10,40 @@
   <tr><th>Category</th><th>Monthly limit</th><th>Active</th><th></th></tr>
   {% for b in budgets %}
   <tr>
-    <td>{{ b.category }}</td>
-    <td>{{ b.currency }} {{ b.monthly_limit }}</td>
-    <td>{{ '✓' if b.active else '' }}</td>
+    <td>{{ b.category | category_label }}<span class="breakdown-key">{{ b.category }}</span></td>
+    <td>
+      <form class="inline" method="post" action="/budgets/{{ b.id }}/edit">
+        <input type="text" name="monthly_limit" value="{{ b.monthly_limit }}" style="width:90px;" aria-label="Monthly limit for {{ b.category }}">
+        <button type="submit" class="btn-ghost btn-sm">save</button>
+      </form>
+      <span class="muted">{{ b.currency }}</span>
+    </td>
+    <td>
+      <form class="inline" method="post" action="/budgets/{{ b.id }}/toggle">
+        <button type="submit" class="btn-ghost btn-sm">{{ 'active' if b.active else 'inactive' }}</button>
+      </form>
+    </td>
     <td>
       <form class="inline" method="post" action="/budgets/{{ b.id }}/delete" onsubmit="return confirm('Remove this budget?');">
-        <button type="submit">remove</button>
+        <button type="submit" class="btn-danger btn-sm">remove</button>
       </form>
     </td>
   </tr>
   {% endfor %}
 </table>
 {% else %}
-<p class="muted">No budgets configured yet.</p>
+{{ empty_state("No budgets configured yet.") }}
 {% endif %}
 
 <h3>Add a budget</h3>
 {% if errors %}
-<div class="card" style="border-color:#cf222e;"><ul>{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul></div>
+<div class="card card-error"><ul>{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul></div>
 {% endif %}
 <form method="post" action="/budgets" class="form-grid">
   <label for="category">Category</label>
   <select name="category" id="category" required>
     {% for c in expense_categories %}
-    <option value="{{ c.key }}">{{ c.key }}</option>
+    <option value="{{ c.key }}">{{ c.key | category_label }} ({{ c.key }})</option>
     {% endfor %}
   </select>
   <label for="monthly_limit">Monthly limit</label>
@@ -40,6 +51,6 @@
   <label for="currency">Currency</label>
   <input type="text" name="currency" id="currency" value="USD" maxlength="3">
   <span></span>
-  <button type="submit">Add</button>
+  <button type="submit" class="btn">Add budget</button>
 </form>
 {% endblock %}

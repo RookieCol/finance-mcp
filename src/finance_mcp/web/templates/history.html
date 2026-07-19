@@ -1,5 +1,6 @@
 {% extends "base.html" %}
-{% block title %}History — finance-mcp{% endblock %}
+{% from "_macros.html" import empty_state %}
+{% block title %}History — Vertex{% endblock %}
 {% block content %}
 <h1>Transaction history</h1>
 <p class="muted">Transaction {{ transaction_id }}</p>
@@ -17,8 +18,8 @@
   {% endfor %}
 </table>
 {% else %}
-<p class="muted">No audit history found for this transaction.</p>
+{{ empty_state("No audit history found for this transaction.") }}
 {% endif %}
 
-<p><a href="/transactions">&larr; Back to transactions</a></p>
+<p><a class="link" href="/transactions">&larr; Back to transactions</a></p>
 {% endblock %}

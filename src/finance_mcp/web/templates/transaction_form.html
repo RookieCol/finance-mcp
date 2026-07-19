@@ -1,10 +1,10 @@
 {% extends "base.html" %}
-{% block title %}{{ 'Edit' if transaction else 'New' }} transaction — finance-mcp{% endblock %}
+{% block title %}{{ 'Edit' if transaction else 'New' }} transaction — Vertex{% endblock %}
 {% block content %}
 <h1>{{ 'Edit' if transaction else 'New' }} transaction</h1>
 
 {% if errors %}
-<div class="card" style="border-color:#cf222e;">
+<div class="card card-error">
   <strong>Please fix:</strong>
   <ul>
     {% for e in errors %}<li>{{ e.field }}: {{ e.message }}</li>{% endfor %}
@@ -34,7 +34,7 @@
   <label for="category">Category</label>
   <select name="category" id="category" required>
     {% for c in categories %}
-    <option value="{{ c.key }}" {{ 'selected' if form.category == c.key }}>{{ c.key }} ({{ c.type }})</option>
+    <option value="{{ c.key }}" {{ 'selected' if form.category == c.key }}>{{ c.key | category_label }} ({{ c.key }})</option>
     {% endfor %}
   </select>
 
@@ -42,6 +42,6 @@
   <input type="checkbox" name="is_recurring" id="is_recurring" {{ 'checked' if form.is_recurring }}>
 
   <span></span>
-  <button type="submit">Save</button>
+  <button type="submit" class="btn">Save transaction</button>
 </form>
 {% endblock %}

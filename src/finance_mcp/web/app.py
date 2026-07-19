@@ -5,10 +5,12 @@ transaction/budget CRUD, alert acknowledgement — sharing the same
 
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 import sqlalchemy as sa
 import uvicorn
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from prometheus_client import make_asgi_app
 
 from finance_mcp.config import get_settings
@@ -29,6 +31,9 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
 
 app = FastAPI(title="finance-mcp — internal UI", lifespan=lifespan)
 app.include_router(router)
+app.mount(
+    "/static", StaticFiles(directory=str(Path(__file__).parent / "static")), name="static"
+)
 app.mount("/metrics", make_asgi_app())
 
 

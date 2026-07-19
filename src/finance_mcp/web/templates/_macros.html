@@ -1,0 +1,32 @@
+{% macro stat_tile(label, value, unit='', tone='') %}
+<div class="stat-tile">
+  <div class="stat-label">{{ label }}</div>
+  <div class="stat-value {{ tone }}">{{ value }}{% if unit %}<span class="stat-unit">{{ unit }}</span>{% endif %}</div>
+</div>
+{% endmacro %}
+
+{% macro badge(severity, text) %}
+<span class="badge badge-{{ severity }}">{{ text }}</span>
+{% endmacro %}
+
+{% macro empty_state(message, action_href='', action_label='') %}
+<div class="empty">
+  <p>{{ message }}</p>
+  {% if action_href %}<a class="link" href="{{ action_href }}">{{ action_label }} &rarr;</a>{% endif %}
+</div>
+{% endmacro %}
+
+{% macro category_breakdown(rows) %}
+<div class="breakdown">
+  {% for row in rows %}
+  <div class="breakdown-row">
+    <div class="breakdown-row-top">
+      <span class="breakdown-label">{{ row.label }}{% if row.category %}<span class="breakdown-key">{{ row.category }}</span>{% endif %}</span>
+      <span class="breakdown-amount">{{ row.currency }} {{ row.amount }}</span>
+    </div>
+    <div class="breakdown-track"><div class="breakdown-fill" style="width: {{ row.pct }}%;"></div></div>
+    <div class="breakdown-pct">{{ row.pct }}% of total</div>
+  </div>
+  {% endfor %}
+</div>
+{% endmacro %}

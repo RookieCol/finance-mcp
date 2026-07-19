@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% from "_macros.html" import empty_state, category_breakdown %}
+{% block title %}Reports — Vertex{% endblock %}
+{% block content %}
+<h1>Reports</h1>
+
+<form method="get" action="/reports" class="filter-form">
+  <div class="field">
+    <label for="date_from">From</label>
+    <input type="date" name="date_from" id="date_from" value="{{ date_from }}">
+  </div>
+  <div class="field">
+    <label for="date_to">To</label>
+    <input type="date" name="date_to" id="date_to" value="{{ date_to }}">
+  </div>
+  <button type="submit" class="btn-ghost">Apply</button>
+</form>
+
+<div class="card-grid">
+  <div class="card">
+    <h3>Net cash flow by month</h3>
+    {% if month_totals %}
+    <table>
+      <tr><th>Month</th><th>Net</th></tr>
+      {% for m in month_totals %}
+      <tr><td>{{ m.month }}</td><td class="num {{ 'amount-income' if m.value >= 0 else 'amount-expense' }}">{{ m.currency }} {{ m.amount }}</td></tr>
+      {% endfor %}
+    </table>
+    {% if mom_delta %}
+    <h3 style="margin-top:1rem;">Month-over-month change</h3>
+    {% for d in mom_delta %}
+    <div class="stat-tile" style="margin-bottom:0.75rem;">
+      <div class="stat-value {{ 'pos' if d.value >= 0 else 'neg' }}">{{ d.currency }} {{ d.display }}</div>
+    </div>
+    {% endfor %}
+    {% for ccy, spark in sparklines.items() %}
+    <div class="muted" style="font-size:0.75rem; margin-bottom:0.2rem;">{{ ccy }} trend</div>
+    {{ spark }}
+    {% endfor %}
+    {% endif %}
+    {% else %}
+    {{ empty_state("No transactions in this range.") }}
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <h3>Expenses by category</h3>
+    {% if expense_breakdown %}
+    {{ category_breakdown(expense_breakdown) }}
+    {% else %}
+    {{ empty_state("No expenses in this range.") }}
+    {% endif %}
+
+    {% if income_breakdown %}
+    <h3 style="margin-top:1.25rem;">Income by category</h3>
+    {{ category_breakdown(income_breakdown) }}
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

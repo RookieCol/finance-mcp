@@ -31,6 +31,7 @@ services:
     environment:
       DATABASE_URL: postgresql+psycopg://finance:finance@postgres:5432/finance
       LOG_LEVEL: INFO
+      SCHEDULER_CASH_BALANCE: ${SCHEDULER_CASH_BALANCE:-0}
     depends_on:
       postgres:
         condition: service_healthy

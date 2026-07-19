@@ -1,5 +1,6 @@
 {% extends "base.html" %}
-{% block title %}Alerts — finance-mcp{% endblock %}
+{% from "_macros.html" import empty_state %}
+{% block title %}Alerts — Vertex{% endblock %}
 {% block content %}
 <h1>Alerts</h1>
 
@@ -12,16 +13,22 @@
     <td><span class="badge badge-{{ a.severity }}">{{ a.severity }}</span></td>
     <td>{{ a.detected_at }}</td>
     <td>{{ a.delivered_at or '—' }}</td>
-    <td><code>{{ a.payload }}</code></td>
+    <td>
+      {{ a.summary }}
+      <details class="raw-payload">
+        <summary>raw</summary>
+        <code>{{ a.payload }}</code>
+      </details>
+    </td>
     <td>
       <form class="inline" method="post" action="/alerts/{{ a.id }}/acknowledge">
-        <button type="submit">acknowledge</button>
+        <button type="submit" class="btn-ghost btn-sm">acknowledge</button>
       </form>
     </td>
   </tr>
   {% endfor %}
 </table>
 {% else %}
-<p class="muted">No alerts — nothing currently needs your attention.</p>
+{{ empty_state("No alerts — nothing currently needs your attention.") }}
 {% endif %}
 {% endblock %}
