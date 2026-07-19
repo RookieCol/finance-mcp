@@ -1,10 +1,12 @@
 # Minimal Hermes config for the hermes-dev compose profile.
 #
 # Registers finance-mcp as a local MCP server, and defaults to a free,
-# fully local LLM via Ollama (qwen2.5:7b-instruct — tool-calling capable,
-# ~4.7GB, far lighter than the 20GB+ models some local-Hermes guides
-# assume). Swap the `model:` block for the commented OpenRouter example
-# below if you'd rather use a cloud model.
+# fully local LLM via Ollama (qwen2.5:3b-instruct — tool-calling capable,
+# ~1.9GB, far lighter than the 20GB+ models some local-Hermes guides
+# assume, and sized to fit Docker Desktop's default 7.75GB VM alongside
+# the rest of this compose stack — see docker/hermes/Modelfile for why
+# 3B rather than 7B). Swap the `model:` block for the commented
+# OpenRouter example below if you'd rather use a cloud model.
 #
 # This file documents the config Hermes needs; on first run Hermes
 # persists its own copy under the mounted /opt/data, so merge this in
@@ -14,7 +16,7 @@
 # Hermes" for the equivalent `hermes mcp add` CLI form.
 
 model:
-  default: "qwen2.5-64k"      # tagged variant, see docker/hermes/Modelfile
+  default: "qwen2.5-3b-64k"   # tagged variant, see docker/hermes/Modelfile
   provider: "custom"
   base_url: "http://ollama:11434/v1"
   api_key: "no-key"           # Ollama doesn't require auth

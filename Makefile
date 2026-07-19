@@ -23,7 +23,7 @@ langfuse: .env ## Start the optional Langfuse + LiteLLM profile — http://local
 	$(COMPOSE_LANGFUSE) --profile langfuse up -d
 
 .PHONY: ollama
-ollama: .env ## Start Ollama and pull the free local model (qwen2.5:7b-instruct)
+ollama: .env ## Start Ollama and pull the free local model (qwen2.5:3b-instruct)
 	$(COMPOSE_HERMES) --profile hermes-dev up -d ollama
 	$(COMPOSE_HERMES) --profile hermes-dev run --rm ollama-pull
 

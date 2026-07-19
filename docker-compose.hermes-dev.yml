@@ -21,12 +21,14 @@
 # Hermes can launch `finance-mcp` via `uv` against it (see
 # docker/hermes/config.yaml's mcp_servers.finance.command).
 #
-# NOT independently verified end-to-end in this environment (no way to
-# drive an interactive Hermes chat session headlessly here) — the MCP
-# tool surface itself is fully tested without Hermes
-# (tests/integration/test_mcp_tools.py). If `uv` isn't present in this
-# image version, adjust the command in docker/hermes/config.yaml to
-# whatever Python/uv path the image ships.
+# Verified against a real, running Ollama service: qwen2.5-3b-64k answers
+# chat completions at /v1/chat/completions with the 64K context applied.
+# The interactive Hermes chat session itself (`make chat`) has not been
+# driven end-to-end here (no way to script an interactive TTY session
+# headlessly) — the MCP tool surface it would exercise is already fully
+# tested independently (tests/integration/test_mcp_tools.py). If `uv`
+# isn't present in this image version, adjust the command in
+# docker/hermes/config.yaml to whatever Python/uv path the image ships.
 services:
   ollama:
     image: ollama/ollama:latest
@@ -42,11 +44,13 @@ services:
 
   # One-shot: pulls the tool-calling-capable model used by
   # docker/hermes/config.yaml's default (local) provider, then tags a
-  # `qwen2.5-64k` variant with a raised context window — Ollama serves
-  # qwen2.5:7b-instruct at a 32K default despite the model supporting up
-  # to 128K natively, and Hermes Agent refuses anything under 64K for its
-  # multi-step tool-calling working memory (see docker/hermes/Modelfile).
-  # Both steps are no-ops on re-run once already present.
+  # `qwen2.5-3b-64k` variant with a raised context window — Ollama serves
+  # it at a 32K default despite the model supporting up to 128K natively,
+  # and Hermes Agent refuses anything under 64K for its multi-step
+  # tool-calling working memory (see docker/hermes/Modelfile, which also
+  # explains why this is the 3B model, not 7B: 7B's weights + 64K KV
+  # cache don't fit in Docker Desktop's default 7.75GB VM). Both steps
+  # are no-ops on re-run once already present.
   ollama-pull:
     image: ollama/ollama:latest
     profiles: ["hermes-dev"]
@@ -55,7 +59,7 @@ services:
         condition: service_healthy
     entrypoint: ["sh", "-c"]
     command:
-      - "ollama pull qwen2.5:7b-instruct && ollama create qwen2.5-64k -f /Modelfile"
+      - "ollama pull qwen2.5:3b-instruct && ollama create qwen2.5-3b-64k -f /Modelfile"
     environment:
       OLLAMA_HOST: "ollama:11434"
     volumes:
