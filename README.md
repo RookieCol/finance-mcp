@@ -4,6 +4,8 @@
 [![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](pyproject.toml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
+**Ask, don't guess.**
+
 **Caudal** (Spanish: both *water flow* and *wealth*) — the finance OS for a bootstrapped SaaS: an [MCP](https://modelcontextprotocol.io) server that turns a chat conversation into structured income/expense records, plus an internal web UI and a proactive projections/alerting engine.
 
 > The Python package keeps its original name (`finance_mcp`) — the repo and product are Caudal.
